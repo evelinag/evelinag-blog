@@ -1,0 +1,48 @@
+baseURL = "http://evelinag.com"
+title = "Evelina Gabasova's Blog"
+languageCode = "en-us"
+
+theme = "capsule"
+canonifyURLs = true
+
+SectionPagesMenu = "main"
+
+Paginate = 5  
+
+disqusShortname = "evelinag"
+
+[permalinks]
+blog = "/blog/:year/:month-:day-:filename/"
+
+[social]
+  github = "evelinag"
+  twitter = "evelgab"
+  linkedin = "egabasova"
+
+[params]
+  share = true
+  related = "all"    
+
+[menu]
+
+  [[menu.main]]
+    identifier = "blog"
+    name = "Blog"
+    title = "Blog"
+    url = "/blog/"
+    weight = -120
+
+  [[menu.main]]
+    identifier = "talks"
+    name = "Speaking"
+    title = "Speaking"
+    url = "/speaking/"
+    weight = -110  
+
+  [[menu.main]]
+    identifier = "about"
+    name = "About"
+    title = "About"
+    url = "/about/"
+    weight = -130  
+    

@@ -1,0 +1,112 @@
+@font-face {
+    font-family: 'code_lightregular';
+    src: url('../fonts/Code_Pro_Light_Demo-webfont.eot');
+    src: url('../fonts/Code_Pro_Light_Demo-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/Code_Pro_Light_Demo-webfont.woff') format('woff'),
+         url('../fonts/Code_Pro_Light_Demo-webfont.ttf') format('truetype'),
+         url('../fonts/Code_Pro_Light_Demo-webfont.svg#code_pro_light_demoregular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+@font-face {
+    font-family: 'code_regular';
+    src: url('../fonts/38FD2F_0_0.eot');
+    src: url('../fonts/38FD2F_0_0.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/38FD2F_0_0.woff2') format('woff2'),
+         url('../fonts/38FD2F_0_0.woff') format('woff'),
+         url('../fonts/38FD2F_0_0.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;}
+
+
+@font-face {
+    font-family: 'code_boldregular';
+    src: url('../fonts/code_bold-webfont.woff2') format('woff2'),
+         url('../fonts/code_bold-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+
+h1 a, h2 a, h3 a, h4 a, h5 a, h6 a, .title a, .pagination a, .navbar a, .button, .icon, i {
+    text-decoration: none !important;
+}
+
+a { 
+    text-decoration: underline;
+}
+
+.title-main {
+    font-family: 'code_lightregular'
+}
+
+.profile-info {
+    padding: 1.5rem
+}
+
+.logo {
+    font-family: 'code_lightregular';
+/*    text-shadow:
+    -2px -2px 0 #000,  
+     2px -2px 0 #000,
+     -2px 2px 0 #000,
+      2px 2px 0 #000;*/
+}
+
+.logoname {
+    font-family: 'code_lightregular';
+}
+.logonavbar {
+    font-family: 'code_regular';
+    letter-spacing: 0.1em;
+}
+
+.logobold {
+    font-family: 'code_regular';
+    font-weight: normal;
+    font-style: normal;
+    margin-top: 30px;
+    margin-left: 30px;
+    letter-spacing: 0.05em;
+    
+/*    font-size: 400%;
+    line-height:160%;
+    color: #ffd300;  */
+}
+
+.header-image-talks {
+    background-image: url("/speaking/evelina-gabasova-hero.jpg");
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+    background-color: #999;
+}
+
+.header-image-about {
+    background-image: url("/about/evelina_gabasova_talk.jpg");
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+    background-color: #999;
+}
+
+.hero-title {
+    font-weight: normal;
+    font-style: normal;
+    text-shadow: 7px 7px 15px black, -7px -7px 15px black, 7px -7px 15px black, -7px 7px 15px black;
+}
+
+hr {
+    background-color: #4a4a4a;
+    height: 2.5px;
+}
+
+.profile-info {
+    border-style: solid;
+    border-width: 2.5px;
+}

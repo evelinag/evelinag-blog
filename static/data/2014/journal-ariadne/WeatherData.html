@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<!-- saved from url=(0014)about:internet -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <!-- 
+      The Analyzing temperature data with Ariadne parameters will be replaced with the 
+      document title extracted from the <h1> element or
+      file name, if there is no <h1> heading
+    -->
+    <title>Analyzing temperature data with Ariadne</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="http://code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="http://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type='text/javascript' src='https://www.google.com/jsapi'></script>
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="styles/style.css" />
+    <link type="text/css" rel="stylesheet" href="styles/deedle.css" />
+    <script src="styles/tips.js" type="text/javascript"></script>
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!-- Google Analytics -->
+    <script>
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date(); a = s.createElement(o),
+            m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+
+        ga('create', 'UA-50895981-1', 'evelinag.com');
+        ga('send', 'pageview');
+
+    </script>
+    <!-- End Google Analytics -->	
+  </head>
+  <body>
+    <div class="container">
+      <div class="masthead">
+        <ul class="nav nav-pills pull-right">
+          <li><a href="http://fslab.org">fslab.org</a></li>
+          <li><a href="http://bluemountaincapital.github.io/Deedle">Deedle</a></li>
+          <li><a href="http://bluemountaincapital.github.io/FSharpRProvider">R Provider</a></li>
+          <li><a href="http://fsharp.github.io/FSharp.Data/">F# Data</a></li>
+          <li><a href="http://fsharp.github.io/FSharp.Charting/">F# Charting</a></li>
+          <li><a href="http://numerics.mathdotnet.com/docs/">Math.NET</a></li>
+        </ul>
+        <h3 class="muted">FsLab Journal</h3>
+      </div>
+      <hr />
+      <div class="row" style="margin-top:30px">
+        <div class="span1"></div>
+        <div class="span10" id="main">
+          <h1>Analyzing temperature data with Ariadne</h1>
+
+<p>by <a href="http://evelinag.com">Evelina Gabasova</a></p>
+
+<p>This <a href="http://visualstudiogallery.msdn.microsoft.com/45373b36-2a4c-4b6a-b427-93c7a8effddb">FsLab journal</a>
+shows an example usage of <a href="http://evelinag.com/Ariadne">Ariadne</a>, 
+F# library for Gaussian process regression.</p>
+
+<p>Let's say I want to know how the weather was over the last few weeks in Cambridge, UK. 
+Of course, I can download historical data from the <a href="http://openweathermap.org/">Open Weather Map</a>
+and analyse them. But what if I do not trust the summary data they provide
+for cities? I want to go to the source and download actual data measured at individual weather
+stations. If I download historical data from several nearby locations, I should be able to get
+some idea about the weather in the area.</p>
+
+<p>Open Weather Map provides all their data in Json format, 
+which means I can use <a href="http://fsharp.github.io/FSharp.Data/">F# Data</a> 
+to access all the information.
+First, we need to open all the necessary namespaces. I will also use
+<a href="http://fsharp.github.io/FSharp.Charting/">F# Charting</a> to generate some figures.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+<span class="l">6: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="prep">#r</span> <span class="s">&quot;</span><span class="s">Ariadne</span><span class="s">.</span><span class="s">dll</span><span class="s">&quot;</span>
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">Ariadne</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2)" class="i">GaussianProcess</span>
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs1', 3)" onmouseover="showTip(event, 'fs1', 3)" class="i">Ariadne</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs3', 4)" onmouseover="showTip(event, 'fs3', 4)" class="i">Kernels</span>
+
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs4', 5)" onmouseover="showTip(event, 'fs4', 5)" class="i">FSharp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs5', 6)" onmouseover="showTip(event, 'fs5', 6)" class="i">Data</span>
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs4', 7)" onmouseover="showTip(event, 'fs4', 7)" class="i">FSharp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs6', 8)" onmouseover="showTip(event, 'fs6', 8)" class="i">Charting</span></pre>
+</td>
+</tr>
+</table>
+
+<p>Now I can download data directly from Open Weather Map. I create a query
+which requests a specific number of weather stations which are closest to a specific 
+location. Here I use Json type provider to load a list of 5 closest weather stations.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="c">// Json type provider </span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs7', 9)" onmouseover="showTip(event, 'fs7', 9)" class="i">WeatherStations</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 10)" onmouseover="showTip(event, 'fs8', 10)" class="i">JsonProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">http</span><span class="s">:</span><span class="s">/</span><span class="s">/</span><span class="s">api</span><span class="s">.</span><span class="s">openweathermap</span><span class="s">.</span><span class="s">org</span><span class="s">/</span><span class="s">data</span><span class="s">/</span><span class="s">2</span><span class="s">.</span><span class="s">5</span><span class="s">/</span><span class="s">station</span><span class="s">/</span><span class="s">find</span><span class="s">?</span><span class="s">lat</span><span class="s">=</span><span class="s">52</span><span class="s">.</span><span class="s">2</span><span class="s">&amp;</span><span class="s">lon</span><span class="s">=</span><span class="s">0</span><span class="s">.</span><span class="s">12</span><span class="s">&amp;</span><span class="s">cnt</span><span class="s">=</span><span class="s">5</span><span class="s">&quot;</span><span class="o">&gt;</span>
+
+<span class="c">// Cambridge location</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs9', 11)" onmouseover="showTip(event, 'fs9', 11)" class="i">latitude</span> <span class="o">=</span> <span class="n">52.2</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs10', 12)" onmouseover="showTip(event, 'fs10', 12)" class="i">longitude</span> <span class="o">=</span> <span class="n">0.12</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs11', 13)" onmouseover="showTip(event, 'fs11', 13)" class="i">count</span> <span class="o">=</span> <span class="n">5</span>
+
+<span class="c">// load data from Open Weather Map</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs12', 14)" onmouseover="showTip(event, 'fs12', 14)" class="i">query</span> <span class="o">=</span> <span class="s">@&quot;</span><span class="s">http</span><span class="s">:</span><span class="s">/</span><span class="s">/</span><span class="s">api</span><span class="s">.</span><span class="s">openweathermap</span><span class="s">.</span><span class="s">org</span><span class="s">/</span><span class="s">data</span><span class="s">/</span><span class="s">2</span><span class="s">.</span><span class="s">5</span><span class="s">/</span><span class="s">station</span><span class="s">/</span><span class="s">find</span><span class="s">?</span><span class="s">lat</span><span class="s">=</span><span class="s">&quot;</span> 
+            <span class="o">+</span> <span onmouseout="hideTip(event, 'fs13', 15)" onmouseover="showTip(event, 'fs13', 15)" class="i">string</span> <span onmouseout="hideTip(event, 'fs9', 16)" onmouseover="showTip(event, 'fs9', 16)" class="i">latitude</span> <span class="o">+</span> <span class="s">@&quot;</span><span class="s">&amp;</span><span class="s">lon</span><span class="s">=</span><span class="s">&quot;</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fs13', 17)" onmouseover="showTip(event, 'fs13', 17)" class="i">string</span> <span onmouseout="hideTip(event, 'fs10', 18)" onmouseover="showTip(event, 'fs10', 18)" class="i">longitude</span> <span class="o">+</span> <span class="s">&quot;</span><span class="s">&amp;</span><span class="s">cnt</span><span class="s">=</span><span class="s">&quot;</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fs13', 19)" onmouseover="showTip(event, 'fs13', 19)" class="i">string</span> <span onmouseout="hideTip(event, 'fs11', 20)" onmouseover="showTip(event, 'fs11', 20)" class="i">count</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs14', 21)" onmouseover="showTip(event, 'fs14', 21)" class="i">stations</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs7', 22)" onmouseover="showTip(event, 'fs7', 22)" class="i">WeatherStations</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs15', 23)" onmouseover="showTip(event, 'fs15', 23)" class="i">Load</span>(<span onmouseout="hideTip(event, 'fs12', 24)" onmouseover="showTip(event, 'fs12', 24)" class="i">query</span>)</pre>
+</td>
+</tr>
+</table>
+
+<p>We can also check how far are the weather stations from Cambridge. It seems that
+they all lie approximately within 15 miles from Cambridge.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span onmouseout="hideTip(event, 'fs14', 25)" onmouseover="showTip(event, 'fs14', 25)" class="i">stations</span> 
+<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 26)" onmouseover="showTip(event, 'fs16', 26)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs17', 27)" onmouseover="showTip(event, 'fs17', 27)" class="i">iter</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs18', 28)" onmouseover="showTip(event, 'fs18', 28)" class="i">station</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs19', 29)" onmouseover="showTip(event, 'fs19', 29)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">.</span><span class="s">2</span><span class="s">f</span><span class="s">&quot;</span> (<span onmouseout="hideTip(event, 'fs20', 30)" onmouseover="showTip(event, 'fs20', 30)" class="i">float</span> <span onmouseout="hideTip(event, 'fs18', 31)" onmouseover="showTip(event, 'fs18', 31)" class="i">station</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs21', 32)" onmouseover="showTip(event, 'fs21', 32)" class="i">Distance</span>))</pre>
+</td>
+</tr>
+</table>
+
+<pre><code>3.49
+3.79
+5.84
+13.00
+15.71
+</code></pre>
+
+<p>Now we send a query to Open Weather Map asking for historical data for each of 
+the five weather stations. The constructed query should return summarized daily weather
+data approximately for the past month.
+Again, I am using Json type provider to access the data.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs22', 33)" onmouseover="showTip(event, 'fs22', 33)" class="i">StationData</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs8', 34)" onmouseover="showTip(event, 'fs8', 34)" class="i">JsonProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">http</span><span class="s">:</span><span class="s">/</span><span class="s">/</span><span class="s">api</span><span class="s">.</span><span class="s">openweathermap</span><span class="s">.</span><span class="s">org</span><span class="s">/</span><span class="s">data</span><span class="s">/</span><span class="s">2</span><span class="s">.</span><span class="s">5</span><span class="s">/</span><span class="s">history</span><span class="s">/</span><span class="s">station</span><span class="s">?</span><span class="s">id</span><span class="s">=</span><span class="s">51473</span><span class="s">&quot;</span><span class="o">&gt;</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs23', 35)" onmouseover="showTip(event, 'fs23', 35)" class="i">stationIds</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 36)" onmouseover="showTip(event, 'fs14', 36)" class="i">stations</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 37)" onmouseover="showTip(event, 'fs16', 37)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 38)" onmouseover="showTip(event, 'fs24', 38)" class="i">map</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs18', 39)" onmouseover="showTip(event, 'fs18', 39)" class="i">station</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs18', 40)" onmouseover="showTip(event, 'fs18', 40)" class="i">station</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs25', 41)" onmouseover="showTip(event, 'fs25', 41)" class="i">Station</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs26', 42)" onmouseover="showTip(event, 'fs26', 42)" class="i">Id</span>)
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs27', 43)" onmouseover="showTip(event, 'fs27', 43)" class="i">stationQuery</span> (<span onmouseout="hideTip(event, 'fs28', 44)" onmouseover="showTip(event, 'fs28', 44)" class="i">station</span><span class="o">:</span><span onmouseout="hideTip(event, 'fs29', 45)" onmouseover="showTip(event, 'fs29', 45)" class="i">int</span>) <span class="o">=</span> 
+    <span class="s">@&quot;</span><span class="s">http</span><span class="s">:</span><span class="s">/</span><span class="s">/</span><span class="s">api</span><span class="s">.</span><span class="s">openweathermap</span><span class="s">.</span><span class="s">org</span><span class="s">/</span><span class="s">data</span><span class="s">/</span><span class="s">2</span><span class="s">.</span><span class="s">5</span><span class="s">/</span><span class="s">history</span><span class="s">/</span><span class="s">station</span><span class="s">?</span><span class="s">id</span><span class="s">=</span><span class="s">&quot;</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fs13', 46)" onmouseover="showTip(event, 'fs13', 46)" class="i">string</span> <span onmouseout="hideTip(event, 'fs28', 47)" onmouseover="showTip(event, 'fs28', 47)" class="i">station</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs30', 48)" onmouseover="showTip(event, 'fs30', 48)" class="i">stationData</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs23', 49)" onmouseover="showTip(event, 'fs23', 49)" class="i">stationIds</span>
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 50)" onmouseover="showTip(event, 'fs16', 50)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 51)" onmouseover="showTip(event, 'fs24', 51)" class="i">map</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs31', 52)" onmouseover="showTip(event, 'fs31', 52)" class="i">id</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs22', 53)" onmouseover="showTip(event, 'fs22', 53)" class="i">StationData</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs32', 54)" onmouseover="showTip(event, 'fs32', 54)" class="i">Load</span>(<span onmouseout="hideTip(event, 'fs27', 55)" onmouseover="showTip(event, 'fs27', 55)" class="i">stationQuery</span> <span onmouseout="hideTip(event, 'fs31', 56)" onmouseover="showTip(event, 'fs31', 56)" class="i">id</span>))</pre>
+</td>
+</tr>
+</table>
+
+<p>After this step, we should have all the historical data for each station in <code>stationData</code>.
+I am interested in temperatures over the past month, so I extract only the average 
+temperatures for each day. In general, station data contain also other information 
+like atmospheric pressure, precipitation or wind speed.
+In the following code, I extract the temperature in Celsius, and return
+it together with its corresponding time of measurement.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="c">// Extract temperatures</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs33', 57)" onmouseover="showTip(event, 'fs33', 57)" class="i">temperatures</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs30', 58)" onmouseover="showTip(event, 'fs30', 58)" class="i">stationData</span>
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 59)" onmouseover="showTip(event, 'fs16', 59)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 60)" onmouseover="showTip(event, 'fs24', 60)" class="i">map</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs34', 61)" onmouseover="showTip(event, 'fs34', 61)" class="i">s</span> <span class="k">-&gt;</span>
+        <span onmouseout="hideTip(event, 'fs34', 62)" onmouseover="showTip(event, 'fs34', 62)" class="i">s</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs35', 63)" onmouseover="showTip(event, 'fs35', 63)" class="i">List</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 64)" onmouseover="showTip(event, 'fs16', 64)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 65)" onmouseover="showTip(event, 'fs24', 65)" class="i">map</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs36', 66)" onmouseover="showTip(event, 'fs36', 66)" class="i">dt</span> <span class="k">-&gt;</span> 
+           <span class="c">// raw temperatures are in Kelvin, transform to Celsius</span>
+           <span onmouseout="hideTip(event, 'fs36', 67)" onmouseover="showTip(event, 'fs36', 67)" class="i">dt</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs37', 68)" onmouseover="showTip(event, 'fs37', 68)" class="i">Dt</span> , (<span onmouseout="hideTip(event, 'fs20', 69)" onmouseover="showTip(event, 'fs20', 69)" class="i">float</span> <span onmouseout="hideTip(event, 'fs36', 70)" onmouseover="showTip(event, 'fs36', 70)" class="i">dt</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 71)" onmouseover="showTip(event, 'fs38', 71)" class="i">Temp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs39', 72)" onmouseover="showTip(event, 'fs39', 72)" class="i">V</span>) <span class="o">-</span> <span class="n">273.15</span>))
+
+<span class="c">// Plot temperature data</span>
+<span onmouseout="hideTip(event, 'fs33', 73)" onmouseover="showTip(event, 'fs33', 73)" class="i">temperatures</span>
+<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 74)" onmouseover="showTip(event, 'fs16', 74)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 75)" onmouseover="showTip(event, 'fs24', 75)" class="i">map</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs40', 76)" onmouseover="showTip(event, 'fs40', 76)" class="i">ts</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs41', 77)" onmouseover="showTip(event, 'fs41', 77)" class="i">Chart</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs42', 78)" onmouseover="showTip(event, 'fs42', 78)" class="i">Point</span>(<span onmouseout="hideTip(event, 'fs40', 79)" onmouseover="showTip(event, 'fs40', 79)" class="i">ts</span>, <span class="i">MarkerSize</span><span class="o">=</span><span class="n">10</span>))
+<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs41', 80)" onmouseover="showTip(event, 'fs41', 80)" class="i">Chart</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs43', 81)" onmouseover="showTip(event, 'fs43', 81)" class="i">Combine</span>
+<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs41', 82)" onmouseover="showTip(event, 'fs41', 82)" class="i">Chart</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs44', 83)" onmouseover="showTip(event, 'fs44', 83)" class="i">WithYAxis</span>(<span class="i">Min</span><span class="o">=</span><span class="n">10.0</span>, <span class="i">Max</span><span class="o">=</span><span class="n">25.0</span>)</pre>
+</td>
+</tr>
+</table>
+
+<p><img src="./images/chart1.png" alt="" /></p>
+
+<p>Notice that the data are quite noisy. Also, we have different number of observations 
+from different weather stations. 
+Each day, sometimes there are 5 observations, sometimes only 2, sometimes there are
+outliers. Gaussian processes are a great tool to model this form of data because they take
+all the noise and uncertainty into account.</p>
+
+<p>Another thing to notice is that Open Weather Map provides all date and time 
+information in unix time.
+To bring all the time into a more interpretable range, I change the scale 
+into days. I also create an F# record containing <code>Locations</code> and <code>Observations</code>
+which is used by <a href="http://evelinag.com/Ariadne">Ariadne</a>
+to pass data into Gaussian process.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs45', 84)" onmouseover="showTip(event, 'fs45', 84)" class="i">startTime</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs33', 85)" onmouseover="showTip(event, 'fs33', 85)" class="i">temperatures</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 86)" onmouseover="showTip(event, 'fs16', 86)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 87)" onmouseover="showTip(event, 'fs24', 87)" class="i">map</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs40', 88)" onmouseover="showTip(event, 'fs40', 88)" class="i">ts</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs16', 89)" onmouseover="showTip(event, 'fs16', 89)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs46', 90)" onmouseover="showTip(event, 'fs46', 90)" class="i">minBy</span> <span onmouseout="hideTip(event, 'fs47', 91)" onmouseover="showTip(event, 'fs47', 91)" class="i">fst</span> <span onmouseout="hideTip(event, 'fs40', 92)" onmouseover="showTip(event, 'fs40', 92)" class="i">ts</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs47', 93)" onmouseover="showTip(event, 'fs47', 93)" class="i">fst</span>)
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 94)" onmouseover="showTip(event, 'fs16', 94)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs48', 95)" onmouseover="showTip(event, 'fs48', 95)" class="i">min</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs49', 96)" onmouseover="showTip(event, 'fs49', 96)" class="i">data</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs33', 97)" onmouseover="showTip(event, 'fs33', 97)" class="i">temperatures</span>
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs16', 98)" onmouseover="showTip(event, 'fs16', 98)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 99)" onmouseover="showTip(event, 'fs24', 99)" class="i">map</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs50', 100)" onmouseover="showTip(event, 'fs50', 100)" class="i">temps</span> <span class="k">-&gt;</span>
+        {<span class="i">Locations</span> <span class="o">=</span> 
+            <span onmouseout="hideTip(event, 'fs16', 101)" onmouseover="showTip(event, 'fs16', 101)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 102)" onmouseover="showTip(event, 'fs24', 102)" class="i">map</span> (<span class="k">fun</span> (<span onmouseout="hideTip(event, 'fs51', 103)" onmouseover="showTip(event, 'fs51', 103)" class="i">t</span>,_) <span class="k">-&gt;</span> 
+                <span onmouseout="hideTip(event, 'fs20', 104)" onmouseover="showTip(event, 'fs20', 104)" class="i">float</span> (<span onmouseout="hideTip(event, 'fs51', 105)" onmouseover="showTip(event, 'fs51', 105)" class="i">t</span> <span class="o">-</span> <span onmouseout="hideTip(event, 'fs45', 106)" onmouseover="showTip(event, 'fs45', 106)" class="i">startTime</span>) <span class="o">/</span> (<span class="n">24.0</span> <span class="o">*</span> <span class="n">3600.0</span>)) <span onmouseout="hideTip(event, 'fs50', 107)" onmouseover="showTip(event, 'fs50', 107)" class="i">temps</span>
+         <span class="i">Observations</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs16', 108)" onmouseover="showTip(event, 'fs16', 108)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs24', 109)" onmouseover="showTip(event, 'fs24', 109)" class="i">map</span> <span onmouseout="hideTip(event, 'fs52', 110)" onmouseover="showTip(event, 'fs52', 110)" class="i">snd</span> <span onmouseout="hideTip(event, 'fs50', 111)" onmouseover="showTip(event, 'fs50', 111)" class="i">temps</span>})</pre>
+</td>
+</tr>
+</table>
+
+<p>Now we can construct a Gaussian process with squared exponential covariance function.
+Squared exponential kernel generally characterizes very smooth functions.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs53', 112)" onmouseover="showTip(event, 'fs53', 112)" class="i">lengthscale</span> <span class="o">=</span> <span class="n">1.0</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs54', 113)" onmouseover="showTip(event, 'fs54', 113)" class="i">signalVariance</span> <span class="o">=</span> <span class="n">20.0</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs55', 114)" onmouseover="showTip(event, 'fs55', 114)" class="i">noiseVariance</span> <span class="o">=</span> <span class="n">1.0</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs56', 115)" onmouseover="showTip(event, 'fs56', 115)" class="i">sqExp</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs57', 116)" onmouseover="showTip(event, 'fs57', 116)" class="i">SquaredExp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs58', 117)" onmouseover="showTip(event, 'fs58', 117)" class="i">SquaredExp</span>(<span onmouseout="hideTip(event, 'fs53', 118)" onmouseover="showTip(event, 'fs53', 118)" class="i">lengthscale</span>, <span onmouseout="hideTip(event, 'fs54', 119)" onmouseover="showTip(event, 'fs54', 119)" class="i">signalVariance</span>, <span onmouseout="hideTip(event, 'fs55', 120)" onmouseover="showTip(event, 'fs55', 120)" class="i">noiseVariance</span>)</pre>
+</td>
+</tr>
+</table>
+
+<p>I guessed some values for hyperparameters of the squared exponential covariance function. 
+The first hyperparameter is the lengthscale. Its value regulates how quickly the function
+values change, how wide squiggles we expect to see in the function. Lengthscale of 1
+assumes that the temperature changes quite quickly from day to day.</p>
+
+<p>The second parameter is the signal variance which regulates how far does the function
+go from its prior mean. Since the prior mean function of our Gaussian process is zero
+and I am being lazy by leaving the data on their original scale, I have to set quite a 
+large variance. The last parameter is the noise variance which models the amount of 
+noise present in the observed data. You can find more details on interpretation
+of each hyperparameter in the 
+<a href="http://evelinag.com/Ariadne/covarianceFunctions.html">documentation</a>.</p>
+
+<p>With hyperparameters prepared, we can finally fit the Gaussian process regression model.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs59', 121)" onmouseover="showTip(event, 'fs59', 121)" class="i">gp</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs56', 122)" onmouseover="showTip(event, 'fs56', 122)" class="i">sqExp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs60', 123)" onmouseover="showTip(event, 'fs60', 123)" class="i">GaussianProcess</span>()
+<span onmouseout="hideTip(event, 'fs59', 124)" onmouseover="showTip(event, 'fs59', 124)" class="i">gp</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs61', 125)" onmouseover="showTip(event, 'fs61', 125)" class="i">plot</span> <span onmouseout="hideTip(event, 'fs49', 126)" onmouseover="showTip(event, 'fs49', 126)" class="i">data</span></pre>
+</td>
+</tr>
+</table>
+
+<p><img src="./images/chart2.png" alt="" /></p>
+
+<p>The graph shows the mean estimated temperature as a blue line. The grey region
+corresponds to a 95% confidence interval. The fit is quite good, the confidence
+interval captures most of the observed data and the mean captures the general trend.
+You can see that the function goes to zero rapidly outside of the observed region.
+This is because the Gaussian process prediction reverts to the prior mean value 
+when there are no observations. Note that the confidence interval is also getting much
+wider. Generally we can reliably extrapolate only about
+one lengthscale outside of the data regions.</p>
+
+<h2>Optimizing hyperparameters</h2>
+
+<p>Guessing values hyperparameters is not a very reliable method of fitting a model. Ariadne
+provides two basic methods for <a href="http://evelinag.com/Ariadne/optimization.html">optimizing hyperparameters</a>:</p>
+
+<ul>
+<li>Metropolis-Hastings posterior sampling</li>
+<li>simple gradient descent</li>
+</ul>
+
+<p>Both methods are optimizing the log likelihood of the hyperparameters given
+observed data.
+The first method, Metropolis-Hastings, is a probabilistic method which gives us
+the mean estimate of the posterior distribution given observations and our
+prior beliefs about hyperparameter values. This is the proper Bayesian method 
+for optimizing hyperparameters.</p>
+
+<p>First we need to set prior distributions for each hyperparameter. Here I am using
+a Log-normal prior because all hyperparamters have to be larger than zero. The prior
+distributions are centred around my initial guessed values.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs62', 127)" onmouseover="showTip(event, 'fs62', 127)" class="i">MathNet</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs63', 128)" onmouseover="showTip(event, 'fs63', 128)" class="i">Numerics</span>
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs1', 129)" onmouseover="showTip(event, 'fs1', 129)" class="i">Ariadne</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs64', 130)" onmouseover="showTip(event, 'fs64', 130)" class="i">Optimization</span>
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs1', 131)" onmouseover="showTip(event, 'fs1', 131)" class="i">Ariadne</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs64', 132)" onmouseover="showTip(event, 'fs64', 132)" class="i">Optimization</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs65', 133)" onmouseover="showTip(event, 'fs65', 133)" class="i">MetropolisHastings</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs66', 134)" onmouseover="showTip(event, 'fs66', 134)" class="i">rnd</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs67', 135)" onmouseover="showTip(event, 'fs67', 135)" class="i">System</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs68', 136)" onmouseover="showTip(event, 'fs68', 136)" class="i">Random</span>(<span class="n">0</span>)
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs69', 137)" onmouseover="showTip(event, 'fs69', 137)" class="i">lengthscalePrior</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs70', 138)" onmouseover="showTip(event, 'fs70', 138)" class="i">Distributions</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs71', 139)" onmouseover="showTip(event, 'fs71', 139)" class="i">LogNormal</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs72', 140)" onmouseover="showTip(event, 'fs72', 140)" class="i">WithMeanVariance</span>(<span class="n">1.0</span>, <span class="n">1.0</span>, <span onmouseout="hideTip(event, 'fs66', 141)" onmouseover="showTip(event, 'fs66', 141)" class="i">rnd</span>)
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs73', 142)" onmouseover="showTip(event, 'fs73', 142)" class="i">variancePrior</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs70', 143)" onmouseover="showTip(event, 'fs70', 143)" class="i">Distributions</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs71', 144)" onmouseover="showTip(event, 'fs71', 144)" class="i">LogNormal</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs72', 145)" onmouseover="showTip(event, 'fs72', 145)" class="i">WithMeanVariance</span>(<span class="n">20.0</span>, <span class="n">5.0</span>, <span onmouseout="hideTip(event, 'fs66', 146)" onmouseover="showTip(event, 'fs66', 146)" class="i">rnd</span>)
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs74', 147)" onmouseover="showTip(event, 'fs74', 147)" class="i">noisePrior</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs70', 148)" onmouseover="showTip(event, 'fs70', 148)" class="i">Distributions</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs71', 149)" onmouseover="showTip(event, 'fs71', 149)" class="i">LogNormal</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs72', 150)" onmouseover="showTip(event, 'fs72', 150)" class="i">WithMeanVariance</span>(<span class="n">0.5</span>, <span class="n">1.0</span>, <span onmouseout="hideTip(event, 'fs66', 151)" onmouseover="showTip(event, 'fs66', 151)" class="i">rnd</span>)
+<span class="c">// construct the prior distribution</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs75', 152)" onmouseover="showTip(event, 'fs75', 152)" class="i">prior</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs76', 153)" onmouseover="showTip(event, 'fs76', 153)" class="i">SquaredExp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs77', 154)" onmouseover="showTip(event, 'fs77', 154)" class="i">Prior</span>(<span onmouseout="hideTip(event, 'fs69', 155)" onmouseover="showTip(event, 'fs69', 155)" class="i">lengthscalePrior</span>, <span onmouseout="hideTip(event, 'fs73', 156)" onmouseover="showTip(event, 'fs73', 156)" class="i">variancePrior</span>, <span onmouseout="hideTip(event, 'fs74', 157)" onmouseover="showTip(event, 'fs74', 157)" class="i">noisePrior</span>)
+
+<span class="c">// set parameters for Metropolis-Hastings sampler</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs78', 158)" onmouseover="showTip(event, 'fs78', 158)" class="i">settings</span> <span class="o">=</span> 
+    { <span class="i">Burnin</span> <span class="o">=</span> <span class="n">500</span>       <span class="c">// Number of burn-in iterations</span>
+      <span class="i">Lag</span> <span class="o">=</span> <span class="n">5</span>            <span class="c">// Thinning of posterior samples</span>
+      <span class="i">SampleSize</span> <span class="o">=</span> <span class="n">100</span> } <span class="c">// Number of thinned posterior samples</span></pre>
+</td>
+</tr>
+</table>
+
+<p>Metropolis-Hastings sampler in <a href="http://evelinag.com/Ariadne">Ariadne</a> samples from 
+the posterior distribution and returns the mean estimate for each hyperparameter.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+<span class="l">6: </span>
+<span class="l">7: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="c">// Run the sampler</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs79', 159)" onmouseover="showTip(event, 'fs79', 159)" class="i">kernelMH</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs76', 160)" onmouseover="showTip(event, 'fs76', 160)" class="i">SquaredExp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs80', 161)" onmouseover="showTip(event, 'fs80', 161)" class="i">optimizeMetropolis</span> <span onmouseout="hideTip(event, 'fs49', 162)" onmouseover="showTip(event, 'fs49', 162)" class="i">data</span> <span onmouseout="hideTip(event, 'fs78', 163)" onmouseover="showTip(event, 'fs78', 163)" class="i">settings</span> <span onmouseout="hideTip(event, 'fs75', 164)" onmouseover="showTip(event, 'fs75', 164)" class="i">prior</span> <span onmouseout="hideTip(event, 'fs56', 165)" onmouseover="showTip(event, 'fs56', 165)" class="i">sqExp</span>
+<span class="c">// Construct updated Gaussian process</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs81', 166)" onmouseover="showTip(event, 'fs81', 166)" class="i">gpMH</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs79', 167)" onmouseover="showTip(event, 'fs79', 167)" class="i">kernelMH</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs60', 168)" onmouseover="showTip(event, 'fs60', 168)" class="i">GaussianProcess</span>()
+
+<span onmouseout="hideTip(event, 'fs81', 169)" onmouseover="showTip(event, 'fs81', 169)" class="i">gpMH</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs61', 170)" onmouseover="showTip(event, 'fs61', 170)" class="i">plot</span> <span onmouseout="hideTip(event, 'fs49', 171)" onmouseover="showTip(event, 'fs49', 171)" class="i">data</span>
+<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs41', 172)" onmouseover="showTip(event, 'fs41', 172)" class="i">Chart</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs82', 173)" onmouseover="showTip(event, 'fs82', 173)" class="i">WithXAxis</span>(<span class="i">Min</span><span class="o">=</span><span class="n">0.0</span>, <span class="i">Max</span> <span class="o">=</span> <span class="n">30.0</span>)</pre>
+</td>
+</tr>
+</table>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span onmouseout="hideTip(event, 'fs19', 174)" onmouseover="showTip(event, 'fs19', 174)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Original</span><span class="s"> </span><span class="s">Gaussian</span><span class="s"> </span><span class="s">process</span><span class="s"> </span><span class="s">likelihood</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">f</span><span class="s">&quot;</span> (<span onmouseout="hideTip(event, 'fs59', 175)" onmouseover="showTip(event, 'fs59', 175)" class="i">gp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 176)" onmouseover="showTip(event, 'fs83', 176)" class="i">LogLikelihood</span> <span onmouseout="hideTip(event, 'fs49', 177)" onmouseover="showTip(event, 'fs49', 177)" class="i">data</span>)
+<span onmouseout="hideTip(event, 'fs19', 178)" onmouseover="showTip(event, 'fs19', 178)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">MH</span><span class="s"> </span><span class="s">Gaussian</span><span class="s"> </span><span class="s">process</span><span class="s"> </span><span class="s">likelihood</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">f</span><span class="s">&quot;</span> (<span onmouseout="hideTip(event, 'fs81', 179)" onmouseover="showTip(event, 'fs81', 179)" class="i">gpMH</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 180)" onmouseover="showTip(event, 'fs83', 180)" class="i">LogLikelihood</span> <span onmouseout="hideTip(event, 'fs49', 181)" onmouseover="showTip(event, 'fs49', 181)" class="i">data</span>)</pre>
+</td>
+</tr>
+</table>
+
+<pre><code>Original Gaussian process likelihood: -333.369341
+MH Gaussian process likelihood: -246.006847
+</code></pre>
+
+<p><img src="./images/chart3.png" alt="" /></p>
+
+<p>Log likelihood of the new Gaussian process increased quite significantly, which means
+that the optimized Gaussian process provides a much better fit to the observed training
+data than the original one.</p>
+
+<p>The second option how to select values of hyperparameters is standard nonlinear optimization.
+Ariadne currently implements only basic gradient descent algorithm. This method uses
+derivatives of the log likelihood function to find a local optimum.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs84', 182)" onmouseover="showTip(event, 'fs84', 182)" class="i">gdSettings</span> <span class="o">=</span> 
+    { <span onmouseout="hideTip(event, 'fs85', 183)" onmouseover="showTip(event, 'fs85', 183)" class="i">GradientDescent</span><span class="o">.</span><span class="i">Iterations</span> <span class="o">=</span> <span class="n">1000</span>; 
+      <span onmouseout="hideTip(event, 'fs85', 184)" onmouseover="showTip(event, 'fs85', 184)" class="i">GradientDescent</span><span class="o">.</span><span class="i">StepSize</span> <span class="o">=</span> <span class="n">0.1</span>}
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs86', 185)" onmouseover="showTip(event, 'fs86', 185)" class="i">gradientFunction</span> <span onmouseout="hideTip(event, 'fs87', 186)" onmouseover="showTip(event, 'fs87', 186)" class="i">parameters</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs76', 187)" onmouseover="showTip(event, 'fs76', 187)" class="i">SquaredExp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs88', 188)" onmouseover="showTip(event, 'fs88', 188)" class="i">fullGradient</span> <span onmouseout="hideTip(event, 'fs49', 189)" onmouseover="showTip(event, 'fs49', 189)" class="i">data</span> <span onmouseout="hideTip(event, 'fs87', 190)" onmouseover="showTip(event, 'fs87', 190)" class="i">parameters</span>
+
+<span class="c">// Run gradient descent</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs89', 191)" onmouseover="showTip(event, 'fs89', 191)" class="i">kernelGD</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs90', 192)" onmouseover="showTip(event, 'fs90', 192)" class="i">gradientDescent</span> <span onmouseout="hideTip(event, 'fs86', 193)" onmouseover="showTip(event, 'fs86', 193)" class="i">gradientFunction</span> <span onmouseout="hideTip(event, 'fs84', 194)" onmouseover="showTip(event, 'fs84', 194)" class="i">gdSettings</span> (<span onmouseout="hideTip(event, 'fs56', 195)" onmouseover="showTip(event, 'fs56', 195)" class="i">sqExp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs91', 196)" onmouseover="showTip(event, 'fs91', 196)" class="i">Parameters</span>)
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs76', 197)" onmouseover="showTip(event, 'fs76', 197)" class="i">SquaredExp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs92', 198)" onmouseover="showTip(event, 'fs92', 198)" class="i">ofParameters</span>
+
+<span class="c">// Create optimized Gaussian process</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs93', 199)" onmouseover="showTip(event, 'fs93', 199)" class="i">gpGD</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs89', 200)" onmouseover="showTip(event, 'fs89', 200)" class="i">kernelGD</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs60', 201)" onmouseover="showTip(event, 'fs60', 201)" class="i">GaussianProcess</span>()
+
+<span onmouseout="hideTip(event, 'fs93', 202)" onmouseover="showTip(event, 'fs93', 202)" class="i">gpGD</span> <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs94', 203)" onmouseover="showTip(event, 'fs94', 203)" class="i">plotRange</span> (<span class="n">0.0</span>, <span class="n">30.0</span>) <span onmouseout="hideTip(event, 'fs49', 204)" onmouseover="showTip(event, 'fs49', 204)" class="i">data</span></pre>
+</td>
+</tr>
+</table>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span onmouseout="hideTip(event, 'fs19', 205)" onmouseover="showTip(event, 'fs19', 205)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Original</span><span class="s"> </span><span class="s">Gaussian</span><span class="s"> </span><span class="s">process</span><span class="s"> </span><span class="s">likelihood</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">f</span><span class="s">&quot;</span> (<span onmouseout="hideTip(event, 'fs59', 206)" onmouseover="showTip(event, 'fs59', 206)" class="i">gp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 207)" onmouseover="showTip(event, 'fs83', 207)" class="i">LogLikelihood</span> <span onmouseout="hideTip(event, 'fs49', 208)" onmouseover="showTip(event, 'fs49', 208)" class="i">data</span>)
+<span onmouseout="hideTip(event, 'fs19', 209)" onmouseover="showTip(event, 'fs19', 209)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">GD</span><span class="s"> </span><span class="s">Gaussian</span><span class="s"> </span><span class="s">process</span><span class="s"> </span><span class="s">likelihood</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">f</span><span class="s">&quot;</span> (<span onmouseout="hideTip(event, 'fs93', 210)" onmouseover="showTip(event, 'fs93', 210)" class="i">gpGD</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs83', 211)" onmouseover="showTip(event, 'fs83', 211)" class="i">LogLikelihood</span> <span onmouseout="hideTip(event, 'fs49', 212)" onmouseover="showTip(event, 'fs49', 212)" class="i">data</span>)</pre>
+</td>
+</tr>
+</table>
+
+<pre><code>Original Gaussian process likelihood: -333.369341
+GD Gaussian process likelihood: -241.782424
+</code></pre>
+
+<p><img src="./images/chart4.png" alt="" /></p>
+
+<p>Gradient descent found different optimum than Metropolis-Hastings. The fit seems to capture
+mainly the overall trend in the temperatures over the whole month.</p>
+
+<p>The two methods generally yield different resulting models. 
+Metropolis-Hastings takes into account our prior beliefs about hyperparameter values
+and it also samples from the true posterior. Gradient descent finds only a single local
+maximum of the nonlinear log likelihood function.</p>
+
+<p>You can download the <code>fsx</code> source file for weather analysis from 
+<a href="https://github.com/evelinag/Projects/tree/master/WeatherData">GitHub</a>.</p>
+
+<div class="tip" id="fs1">namespace Ariadne</div>
+<div class="tip" id="fs2">module GaussianProcess<br /><br />from Ariadne</div>
+<div class="tip" id="fs3">module Kernels<br /><br />from Ariadne</div>
+<div class="tip" id="fs4">namespace FSharp</div>
+<div class="tip" id="fs5">namespace FSharp.Data</div>
+<div class="tip" id="fs6">namespace FSharp.Charting</div>
+<div class="tip" id="fs7">type WeatherStations = JsonProvider&lt;...&gt;<br /><br />Full name: WeatherData.WeatherStations</div>
+<div class="tip" id="fs8">type JsonProvider<br /><br />Full name: FSharp.Data.JsonProvider<br /><em><br /><br />&lt;summary&gt;Typed representation of a JSON document.&lt;/summary&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;Sample&#39;&gt;Location of a JSON sample file or a string containing a sample JSON document.&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;SampleIsList&#39;&gt;If true, sample should be a list of individual samples for the inference.&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;RootName&#39;&gt;The name to be used to the root type. Defaults to `Root`.&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;Culture&#39;&gt;The culture used for parsing numbers and dates. Defaults to the invariant culture.&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;Encoding&#39;&gt;The encoding used to read the sample. You can specify either the character set name or the codepage number. Defaults to UTF8 for files, and to ISO-8859-1 the for HTTP requests, unless `charset` is specified in the `Content-Type` response header.&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;ResolutionFolder&#39;&gt;A directory that is used when resolving relative file references (at design time and in hosted execution).&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;EmbeddedResource&#39;&gt;When specified, the type provider first attempts to load the sample from the specified resource <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;(e.g. &#39;MyCompany.MyAssembly, resource_name.json&#39;). This is useful when exposing types generated by the type provider.&lt;/param&gt;</em></div>
+<div class="tip" id="fs9">val latitude : float<br /><br />Full name: WeatherData.latitude</div>
+<div class="tip" id="fs10">val longitude : float<br /><br />Full name: WeatherData.longitude</div>
+<div class="tip" id="fs11">val count : int<br /><br />Full name: WeatherData.count</div>
+<div class="tip" id="fs12">val query : string<br /><br />Full name: WeatherData.query</div>
+<div class="tip" id="fs13">Multiple items<br />val string : value:&#39;T -&gt; string<br /><br />Full name: Microsoft.FSharp.Core.Operators.string<br /><br />--------------------<br />type string = System.String<br /><br />Full name: Microsoft.FSharp.Core.string</div>
+<div class="tip" id="fs14">val stations : JsonProvider&lt;...&gt;.Root []<br /><br />Full name: WeatherData.stations</div>
+<div class="tip" id="fs15">JsonProvider&lt;...&gt;.Load(uri: string) : JsonProvider&lt;...&gt;.Root []<br /><em><br /><br />Loads JSON from the specified uri</em><br />JsonProvider&lt;...&gt;.Load(reader: System.IO.TextReader) : JsonProvider&lt;...&gt;.Root []<br /><em><br /><br />Loads JSON from the specified reader</em><br />JsonProvider&lt;...&gt;.Load(stream: System.IO.Stream) : JsonProvider&lt;...&gt;.Root []<br /><em><br /><br />Loads JSON from the specified stream</em></div>
+<div class="tip" id="fs16">module Array<br /><br />from Microsoft.FSharp.Collections</div>
+<div class="tip" id="fs17">val iter : action:(&#39;T -&gt; unit) -&gt; array:&#39;T [] -&gt; unit<br /><br />Full name: Microsoft.FSharp.Collections.Array.iter</div>
+<div class="tip" id="fs18">val station : JsonProvider&lt;...&gt;.Root</div>
+<div class="tip" id="fs19">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.printfn</div>
+<div class="tip" id="fs20">Multiple items<br />val float : value:&#39;T -&gt; float (requires member op_Explicit)<br /><br />Full name: Microsoft.FSharp.Core.Operators.float<br /><br />--------------------<br />type float = System.Double<br /><br />Full name: Microsoft.FSharp.Core.float<br /><br />--------------------<br />type float&lt;&#39;Measure&gt; = float<br /><br />Full name: Microsoft.FSharp.Core.float&lt;_&gt;</div>
+<div class="tip" id="fs21">property JsonProvider&lt;...&gt;.Root.Distance: decimal</div>
+<div class="tip" id="fs22">type StationData = JsonProvider&lt;...&gt;<br /><br />Full name: WeatherData.StationData</div>
+<div class="tip" id="fs23">val stationIds : int []<br /><br />Full name: WeatherData.stationIds</div>
+<div class="tip" id="fs24">val map : mapping:(&#39;T -&gt; &#39;U) -&gt; array:&#39;T [] -&gt; &#39;U []<br /><br />Full name: Microsoft.FSharp.Collections.Array.map</div>
+<div class="tip" id="fs25">property JsonProvider&lt;...&gt;.Root.Station: JsonProvider&lt;...&gt;.Station</div>
+<div class="tip" id="fs26">property JsonProvider&lt;...&gt;.Station.Id: int</div>
+<div class="tip" id="fs27">val stationQuery : station:int -&gt; string<br /><br />Full name: WeatherData.stationQuery</div>
+<div class="tip" id="fs28">val station : int</div>
+<div class="tip" id="fs29">Multiple items<br />val int : value:&#39;T -&gt; int (requires member op_Explicit)<br /><br />Full name: Microsoft.FSharp.Core.Operators.int<br /><br />--------------------<br />type int = int32<br /><br />Full name: Microsoft.FSharp.Core.int<br /><br />--------------------<br />type int&lt;&#39;Measure&gt; = int<br /><br />Full name: Microsoft.FSharp.Core.int&lt;_&gt;</div>
+<div class="tip" id="fs30">val stationData : JsonProvider&lt;...&gt;.Root []<br /><br />Full name: WeatherData.stationData</div>
+<div class="tip" id="fs31">val id : int</div>
+<div class="tip" id="fs32">JsonProvider&lt;...&gt;.Load(uri: string) : JsonProvider&lt;...&gt;.Root<br /><em><br /><br />Loads JSON from the specified uri</em><br />JsonProvider&lt;...&gt;.Load(reader: System.IO.TextReader) : JsonProvider&lt;...&gt;.Root<br /><em><br /><br />Loads JSON from the specified reader</em><br />JsonProvider&lt;...&gt;.Load(stream: System.IO.Stream) : JsonProvider&lt;...&gt;.Root<br /><em><br /><br />Loads JSON from the specified stream</em></div>
+<div class="tip" id="fs33">val temperatures : (int * float) [] []<br /><br />Full name: WeatherData.temperatures</div>
+<div class="tip" id="fs34">val s : JsonProvider&lt;...&gt;.Root</div>
+<div class="tip" id="fs35">property JsonProvider&lt;...&gt;.Root.List: JsonProvider&lt;...&gt;.List []</div>
+<div class="tip" id="fs36">val dt : JsonProvider&lt;...&gt;.List</div>
+<div class="tip" id="fs37">property JsonProvider&lt;...&gt;.List.Dt: int</div>
+<div class="tip" id="fs38">property JsonProvider&lt;...&gt;.List.Temp: JsonProvider&lt;...&gt;.Temp</div>
+<div class="tip" id="fs39">property JsonProvider&lt;...&gt;.Temp.V: decimal</div>
+<div class="tip" id="fs40">val ts : (int * float) []</div>
+<div class="tip" id="fs41">type Chart =<br />&#160;&#160;static member Area : data:seq&lt;#value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; GenericChart<br />&#160;&#160;static member Area : data:seq&lt;#key * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; GenericChart<br />&#160;&#160;static member Bar : data:seq&lt;#value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; GenericChart<br />&#160;&#160;static member Bar : data:seq&lt;#key * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; GenericChart<br />&#160;&#160;static member BoxPlotFromData : data:seq&lt;#key * #seq&lt;&#39;a2&gt;&gt; * ?Name:string * ?Title:string * ?Color:Color * ?XTitle:string * ?YTitle:string * ?Percentile:int * ?ShowAverage:bool * ?ShowMedian:bool * ?ShowUnusualValues:bool * ?WhiskerPercentile:int -&gt; GenericChart (requires &#39;a2 :&gt; value)<br />&#160;&#160;static member BoxPlotFromStatistics : data:seq&lt;#key * #value * #value * #value * #value * #value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string * ?Percentile:int * ?ShowAverage:bool * ?ShowMedian:bool * ?ShowUnusualValues:bool * ?WhiskerPercentile:int -&gt; GenericChart<br />&#160;&#160;static member Bubble : data:seq&lt;#value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string * ?BubbleMaxSize:int * ?BubbleMinSize:int * ?BubbleScaleMax:float * ?BubbleScaleMin:float * ?UseSizeForLabel:bool -&gt; GenericChart<br />&#160;&#160;static member Bubble : data:seq&lt;#key * #value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string * ?BubbleMaxSize:int * ?BubbleMinSize:int * ?BubbleScaleMax:float * ?BubbleScaleMin:float * ?UseSizeForLabel:bool -&gt; GenericChart<br />&#160;&#160;static member Candlestick : data:seq&lt;#value * #value * #value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; CandlestickChart<br />&#160;&#160;static member Candlestick : data:seq&lt;#key * #value * #value * #value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; CandlestickChart<br />&#160;&#160;...<br /><br />Full name: FSharp.Charting.Chart</div>
+<div class="tip" id="fs42">static member Chart.Point : data:seq&lt;#value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:System.Drawing.Color * ?XTitle:string * ?YTitle:string * ?MarkerColor:System.Drawing.Color * ?MarkerSize:int -&gt; ChartTypes.GenericChart<br />static member Chart.Point : data:seq&lt;#key * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:System.Drawing.Color * ?XTitle:string * ?YTitle:string * ?MarkerColor:System.Drawing.Color * ?MarkerSize:int -&gt; ChartTypes.GenericChart</div>
+<div class="tip" id="fs43">static member Chart.Combine : charts:seq&lt;ChartTypes.GenericChart&gt; -&gt; ChartTypes.GenericChart</div>
+<div class="tip" id="fs44">static member Chart.WithYAxis : ?Enabled:bool * ?Title:string * ?Max:float * ?Min:float * ?Log:bool * ?ArrowStyle:ChartTypes.AxisArrowStyle * ?LabelStyle:ChartTypes.LabelStyle * ?MajorGrid:ChartTypes.Grid * ?MinorGrid:ChartTypes.Grid * ?MajorTickMark:ChartTypes.TickMark * ?MinorTickMark:ChartTypes.TickMark * ?TitleAlignment:System.Drawing.StringAlignment * ?TitleFontName:string * ?TitleFontSize:float * ?TitleFontStyle:System.Drawing.FontStyle * ?TitleColor:System.Drawing.Color * ?ToolTip:string -&gt; (&#39;a0 -&gt; &#39;a0) (requires &#39;a0 :&gt; ChartTypes.GenericChart)</div>
+<div class="tip" id="fs45">val startTime : int<br /><br />Full name: WeatherData.startTime</div>
+<div class="tip" id="fs46">val minBy : projection:(&#39;T -&gt; &#39;U) -&gt; array:&#39;T [] -&gt; &#39;T (requires comparison)<br /><br />Full name: Microsoft.FSharp.Collections.Array.minBy</div>
+<div class="tip" id="fs47">val fst : tuple:(&#39;T1 * &#39;T2) -&gt; &#39;T1<br /><br />Full name: Microsoft.FSharp.Core.Operators.fst</div>
+<div class="tip" id="fs48">val min : array:&#39;T [] -&gt; &#39;T (requires comparison)<br /><br />Full name: Microsoft.FSharp.Collections.Array.min</div>
+<div class="tip" id="fs49">val data : Observation&lt;float&gt; []<br /><br />Full name: WeatherData.data</div>
+<div class="tip" id="fs50">val temps : (int * float) []</div>
+<div class="tip" id="fs51">val t : int</div>
+<div class="tip" id="fs52">val snd : tuple:(&#39;T1 * &#39;T2) -&gt; &#39;T2<br /><br />Full name: Microsoft.FSharp.Core.Operators.snd</div>
+<div class="tip" id="fs53">val lengthscale : float<br /><br />Full name: WeatherData.lengthscale</div>
+<div class="tip" id="fs54">val signalVariance : float<br /><br />Full name: WeatherData.signalVariance</div>
+<div class="tip" id="fs55">val noiseVariance : float<br /><br />Full name: WeatherData.noiseVariance</div>
+<div class="tip" id="fs56">val sqExp : SquaredExp.SquaredExp<br /><br />Full name: WeatherData.sqExp</div>
+<div class="tip" id="fs57">module SquaredExp<br /><br />from Ariadne.Kernels</div>
+<div class="tip" id="fs58">Multiple items<br />type SquaredExp =<br />&#160;&#160;new : lengthscale:float * signalVariance:float * noiseVariance:float -&gt; SquaredExp<br />&#160;&#160;member GaussianProcess : unit -&gt; GaussianProcess&lt;float&gt;<br />&#160;&#160;member Kernel : x1:float * x2:float -&gt; float<br />&#160;&#160;override ToString : unit -&gt; string<br />&#160;&#160;member Lengthscale : float<br />&#160;&#160;member NoiseVariance : float<br />&#160;&#160;member Parameters : float []<br />&#160;&#160;member SignalVariance : float<br /><br />Full name: Ariadne.Kernels.SquaredExp.SquaredExp<br /><br />--------------------<br />new : lengthscale:float * signalVariance:float * noiseVariance:float -&gt; SquaredExp.SquaredExp</div>
+<div class="tip" id="fs59">val gp : GaussianProcess&lt;float&gt;<br /><br />Full name: WeatherData.gp</div>
+<div class="tip" id="fs60">member SquaredExp.SquaredExp.GaussianProcess : unit -&gt; GaussianProcess&lt;float&gt;</div>
+<div class="tip" id="fs61">val plot : data:seq&lt;Observation&lt;float&gt;&gt; -&gt; gp:GaussianProcess&lt;float&gt; -&gt; ChartTypes.GenericChart<br /><br />Full name: Ariadne.GaussianProcess.plot</div>
+<div class="tip" id="fs62">namespace MathNet</div>
+<div class="tip" id="fs63">namespace MathNet.Numerics</div>
+<div class="tip" id="fs64">module Optimization<br /><br />from Ariadne</div>
+<div class="tip" id="fs65">module MetropolisHastings<br /><br />from Ariadne.Optimization</div>
+<div class="tip" id="fs66">val rnd : System.Random<br /><br />Full name: WeatherData.rnd</div>
+<div class="tip" id="fs67">namespace System</div>
+<div class="tip" id="fs68">Multiple items<br />type Random =<br />&#160;&#160;new : unit -&gt; Random + 1 overload<br />&#160;&#160;member Next : unit -&gt; int + 2 overloads<br />&#160;&#160;member NextBytes : buffer:byte[] -&gt; unit<br />&#160;&#160;member NextDouble : unit -&gt; float<br /><br />Full name: System.Random<br /><br />--------------------<br />System.Random() : unit<br />System.Random(Seed: int) : unit</div>
+<div class="tip" id="fs69">val lengthscalePrior : Distributions.LogNormal<br /><br />Full name: WeatherData.lengthscalePrior</div>
+<div class="tip" id="fs70">namespace MathNet.Numerics.Distributions</div>
+<div class="tip" id="fs71">Multiple items<br />type LogNormal =<br />&#160;&#160;new : mu:float * sigma:float -&gt; LogNormal + 1 overload<br />&#160;&#160;member CumulativeDistribution : x:float -&gt; float<br />&#160;&#160;member Density : x:float -&gt; float<br />&#160;&#160;member DensityLn : x:float -&gt; float<br />&#160;&#160;member Entropy : float<br />&#160;&#160;member InverseCumulativeDistribution : p:float -&gt; float<br />&#160;&#160;member Maximum : float<br />&#160;&#160;member Mean : float<br />&#160;&#160;member Median : float<br />&#160;&#160;member Minimum : float<br />&#160;&#160;...<br /><br />Full name: MathNet.Numerics.Distributions.LogNormal<br /><br />--------------------<br />Distributions.LogNormal(mu: float, sigma: float) : unit<br />Distributions.LogNormal(mu: float, sigma: float, randomSource: System.Random) : unit</div>
+<div class="tip" id="fs72">Distributions.LogNormal.WithMeanVariance(mean: float, var: float, ?randomSource: System.Random) : Distributions.LogNormal</div>
+<div class="tip" id="fs73">val variancePrior : Distributions.LogNormal<br /><br />Full name: WeatherData.variancePrior</div>
+<div class="tip" id="fs74">val noisePrior : Distributions.LogNormal<br /><br />Full name: WeatherData.noisePrior</div>
+<div class="tip" id="fs75">val prior : SquaredExp.Prior<br /><br />Full name: WeatherData.prior</div>
+<div class="tip" id="fs76">Multiple items<br />module SquaredExp<br /><br />from Ariadne.Optimization<br /><br />--------------------<br />module SquaredExp<br /><br />from Ariadne.Kernels</div>
+<div class="tip" id="fs77">Multiple items<br />type Prior =<br />&#160;&#160;new : lengthscalePrior:LogNormal * signalVariancePrior:LogNormal * noiseVariancePrior:LogNormal -&gt; Prior<br />&#160;&#160;member DensityLn : se:SquaredExp -&gt; float<br />&#160;&#160;member ParamsDensityLn : parameters:float [] -&gt; float<br />&#160;&#160;member Sample : unit -&gt; SquaredExp<br />&#160;&#160;member LengthscalePrior : LogNormal<br />&#160;&#160;member NoiseVariancePrior : LogNormal<br />&#160;&#160;member SignalVariancePrior : LogNormal<br /><br />Full name: Ariadne.Kernels.SquaredExp.Prior<br /><br />--------------------<br />new : lengthscalePrior:Distributions.LogNormal * signalVariancePrior:Distributions.LogNormal * noiseVariancePrior:Distributions.LogNormal -&gt; SquaredExp.Prior</div>
+<div class="tip" id="fs78">val settings : Settings<br /><br />Full name: WeatherData.settings</div>
+<div class="tip" id="fs79">val kernelMH : SquaredExp.SquaredExp<br /><br />Full name: WeatherData.kernelMH</div>
+<div class="tip" id="fs80">val optimizeMetropolis : data:seq&lt;Observation&lt;float&gt;&gt; -&gt; settings:Settings -&gt; prior:SquaredExp.Prior -&gt; initialKernel:SquaredExp.SquaredExp -&gt; SquaredExp.SquaredExp<br /><br />Full name: Ariadne.Optimization.SquaredExp.optimizeMetropolis</div>
+<div class="tip" id="fs81">val gpMH : GaussianProcess&lt;float&gt;<br /><br />Full name: WeatherData.gpMH</div>
+<div class="tip" id="fs82">static member Chart.WithXAxis : ?Enabled:bool * ?Title:string * ?Max:float * ?Min:float * ?Log:bool * ?ArrowStyle:ChartTypes.AxisArrowStyle * ?LabelStyle:ChartTypes.LabelStyle * ?MajorGrid:ChartTypes.Grid * ?MinorGrid:ChartTypes.Grid * ?MajorTickMark:ChartTypes.TickMark * ?MinorTickMark:ChartTypes.TickMark * ?TitleAlignment:System.Drawing.StringAlignment * ?TitleFontName:string * ?TitleFontSize:float * ?TitleFontStyle:System.Drawing.FontStyle * ?TitleColor:System.Drawing.Color * ?ToolTip:string -&gt; (&#39;a0 -&gt; &#39;a0) (requires &#39;a0 :&gt; ChartTypes.GenericChart)</div>
+<div class="tip" id="fs83">member GaussianProcess.LogLikelihood : data:seq&lt;Observation&lt;&#39;T&gt;&gt; -&gt; float</div>
+<div class="tip" id="fs84">val gdSettings : GradientDescent.Settings<br /><br />Full name: WeatherData.gdSettings</div>
+<div class="tip" id="fs85">module GradientDescent<br /><br />from Ariadne.Optimization</div>
+<div class="tip" id="fs86">val gradientFunction : parameters:float [] -&gt; float []<br /><br />Full name: WeatherData.gradientFunction</div>
+<div class="tip" id="fs87">val parameters : float []</div>
+<div class="tip" id="fs88">val fullGradient : data:seq&lt;Observation&lt;float&gt;&gt; -&gt; parameters:float [] -&gt; float []<br /><br />Full name: Ariadne.Kernels.SquaredExp.fullGradient</div>
+<div class="tip" id="fs89">val kernelGD : SquaredExp.SquaredExp<br /><br />Full name: WeatherData.kernelGD</div>
+<div class="tip" id="fs90">val gradientDescent : gradientFun:(Parameters -&gt; Parameters) -&gt; settings:GradientDescent.Settings -&gt; initialLocation:Parameters -&gt; float []<br /><br />Full name: Ariadne.Optimization.gradientDescent</div>
+<div class="tip" id="fs91">property SquaredExp.SquaredExp.Parameters: float []</div>
+<div class="tip" id="fs92">val ofParameters : parameters:seq&lt;float&gt; -&gt; SquaredExp.SquaredExp<br /><br />Full name: Ariadne.Kernels.SquaredExp.ofParameters</div>
+<div class="tip" id="fs93">val gpGD : GaussianProcess&lt;float&gt;<br /><br />Full name: WeatherData.gpGD</div>
+<div class="tip" id="fs94">val plotRange : timeMin:float * timeMax:float -&gt; data:seq&lt;Observation&lt;float&gt;&gt; -&gt; gp:GaussianProcess&lt;float&gt; -&gt; ChartTypes.GenericChart<br /><br />Full name: Ariadne.GaussianProcess.plotRange</div>
+
+
+                    
+        </div>
+        <div class="span1"></div>
+      </div>
+      <hr style="margin-top:50px;"/>
+      <footer class="footer" style="text-align:center">
+        Brought to you by the <a href="http://fsharp.org/technical-groups/">F# Data Science working group</a> and <a href="http://twitter.com/tomaspetricek">@tomaspetricek</a>.<br />
+        Submit <a href="https://github.com/tpetricek/FsLab">feedback on GitHub</a> and help us improve FsLab!
+      </footer>
+    </div>
+  </body>
+</html>

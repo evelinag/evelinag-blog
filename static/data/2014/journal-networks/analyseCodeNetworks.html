@@ -1,0 +1,631 @@
+﻿<!DOCTYPE html>
+<!-- saved from url=(0014)about:internet -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <!-- 
+      The Analysing code dependency networks parameters will be replaced with the 
+      document title extracted from the <h1> element or
+      file name, if there is no <h1> heading
+    -->
+    <title>Analysing code dependency networks</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="http://code.jquery.com/jquery-1.8.0.js"></script>
+    <script src="http://code.jquery.com/ui/1.8.23/jquery-ui.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.1/css/bootstrap-combined.min.css" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="styles/style.css" />
+    <link type="text/css" rel="stylesheet" href="styles/deedle.css" />
+    <script src="styles/tips.js" type="text/javascript"></script>
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!-- Google Analytics -->
+    <script>
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date(); a = s.createElement(o),
+            m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+
+        ga('create', 'UA-50895981-1', 'evelinag.com');
+        ga('send', 'pageview');
+
+    </script>
+    <!-- End Google Analytics -->
+  </head>
+  <body>
+    <div class="container">
+      <div class="masthead">
+        <ul class="nav nav-pills pull-right">
+          <li><a href="http://fslab.org">fslab.org</a></li>
+          <li><a href="http://bluemountaincapital.github.io/Deedle">Deedle</a></li>
+          <li><a href="http://bluemountaincapital.github.io/FSharpRProvider">R Provider</a></li>
+          <li><a href="http://fsharp.github.io/FSharp.Data/">F# Data</a></li>
+          <li><a href="http://fsharp.github.io/FSharp.Charting/">F# Charting</a></li>
+        </ul>
+        <h3 class="muted">FsLab Journal</h3>
+      </div>
+      <hr />
+      <div class="row" style="margin-top:30px">
+        <div class="span1"></div>
+        <div class="span10" id="main">
+          <h1>Analysing code dependency networks</h1>
+
+<p>This <a href="http://visualstudiogallery.msdn.microsoft.com/45373b36-2a4c-4b6a-b427-93c7a8effddb">FsLab Journal</a>
+shows how to analyse code dependency networks from a compiled
+.NET assembly. It is a supplementary material to my blog post on <a href="http://evelinag.com/blog/2014/06-09-comparing-dependency-networks/index.html">Comparing F# and C# with dependency networks</a>.</p>
+
+<p>Requirements:</p>
+
+<ul>
+<li><a href="http://www.mono-project.com/Cecil">Mono.Cecil</a> - a library for analysis
+of compiled .NET assemblies</li>
+<li><a href="http://www.r-project.org/">R</a> - statistical programming language that I 
+used for motif analysis and for some plotting.</li>
+</ul>
+
+<p>You need to have R installed on your machine, especially to run the motif analysis.
+Full source code used in this FsLab journal is available from my 
+<a href="https://github.com/evelinag/Projects/tree/master/CodeNetworks">GitHub page</a>.</p>
+
+<p>Required NuGet packages including Cecil will download 
+when you build this project in Visual Studio.</p>
+
+<h2>Extracting dependency network</h2>
+
+<p>As an example, we will work with <code>FSharp.Data.dll</code> which is already a part
+of this FsLab Journal Project.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs1', 1)" onmouseover="showTip(event, 'fs1', 1)" class="i">projectAssembly</span> <span class="o">=</span> <span class="k">__SOURCE_DIRECTORY__</span> <span class="o">+</span> <span class="s">@&quot;</span><span class="s">\</span><span class="s">packages</span><span class="s">\</span><span class="s">FSharp</span><span class="s">.</span><span class="s">Data</span><span class="s">.</span><span class="s">2</span><span class="s">.</span><span class="s">0</span><span class="s">.</span><span class="s">8</span><span class="s">\</span><span class="s">lib</span><span class="s">\</span><span class="s">net40</span><span class="s">\</span><span class="s">FSharp</span><span class="s">.</span><span class="s">Data</span><span class="s">.</span><span class="s">dll</span><span class="s">&quot;</span></pre>
+</td>
+</tr>
+</table>
+
+<p>First step is to extract dependency network from the assembly. Nodes in this 
+network are formed by top-level classes or modules. Links represent 
+dependencies.</p>
+
+<p>For this, we will
+use some functions defined in <code>dependency-network.fs</code>. Code there uses some of 
+the code from Scott Wlaschin's blog post <a href="http://fsharpforfunandprofit.com/posts/cycles-and-modularity-in-the-wild/">Cycles and modularity in the wild</a>.
+The following function reads dependencies from the assembly and saves the
+extracted network in two JSON files, one containing nodes (modules and classes), 
+second one containing links (dependencies).</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+<span class="l">6: </span>
+<span class="l">7: </span>
+<span class="l">8: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span id="fst2" onmouseout="hideTip(event, 'fs2', 2)" onmouseover="showTip(event, 'fs2', 2, document.getElementById('fst2'))" class="omitted">references...</span>
+<span class="prep">#load</span> <span class="s">&quot;</span><span class="s">type</span><span class="s">-</span><span class="s">dependency</span><span class="s">-</span><span class="s">graph</span><span class="s">.</span><span class="s">fs</span><span class="s">&quot;</span>
+<span class="prep">#load</span> <span class="s">&quot;</span><span class="s">dependency</span><span class="s">-</span><span class="s">network</span><span class="s">.</span><span class="s">fs</span><span class="s">&quot;</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs3', 3)" onmouseover="showTip(event, 'fs3', 3)" class="i">outputDir</span> <span class="o">=</span> <span class="k">__SOURCE_DIRECTORY__</span> <span class="o">+</span> <span class="s">&quot;</span><span class="s">\\</span><span class="s">data</span><span class="s">\\</span><span class="s">&quot;</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs4', 4)" onmouseover="showTip(event, 'fs4', 4)" class="i">project</span> <span class="o">=</span> <span class="s">&quot;</span><span class="s">FSharp</span><span class="s">.</span><span class="s">Data</span><span class="s">&quot;</span>
+
+<span onmouseout="hideTip(event, 'fs5', 5)" onmouseover="showTip(event, 'fs5', 5)" class="i">DependencyNetwork</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs6', 6)" onmouseover="showTip(event, 'fs6', 6)" class="i">generateNetwork</span> <span onmouseout="hideTip(event, 'fs4', 7)" onmouseover="showTip(event, 'fs4', 7)" class="i">project</span> <span onmouseout="hideTip(event, 'fs1', 8)" onmouseover="showTip(event, 'fs1', 8)" class="i">projectAssembly</span> <span onmouseout="hideTip(event, 'fs3', 9)" onmouseover="showTip(event, 'fs3', 9)" class="i">outputDir</span></pre>
+</td>
+</tr>
+</table>
+
+<p>There should now be two files in the <code>data</code> folder: 
+<code>FSharp.Data.all.nodes.json</code> and <code>FSharp.Data.all.links.json</code>.</p>
+
+<p>We can examine size of the network using JSON type provider
+from <code>FSharp.Data</code>.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs7', 10)" onmouseover="showTip(event, 'fs7', 10)" class="i">FSharp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs8', 11)" onmouseover="showTip(event, 'fs8', 11)" class="i">Data</span>
+
+<span class="c">// JSON type provider - provide samples </span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs9', 12)" onmouseover="showTip(event, 'fs9', 12)" class="i">Nodes</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs10', 13)" onmouseover="showTip(event, 'fs10', 13)" class="i">JsonProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">.</span><span class="s">.</span><span class="s">/</span><span class="s">.</span><span class="s">.</span><span class="s">/</span><span class="s">data</span><span class="s">/</span><span class="s">FSharp</span><span class="s">.</span><span class="s">Data</span><span class="s">.</span><span class="s">all</span><span class="s">.</span><span class="s">nodes</span><span class="s">.</span><span class="s">json</span><span class="s">&quot;</span><span class="o">&gt;</span>
+<span class="k">type</span> <span onmouseout="hideTip(event, 'fs11', 14)" onmouseover="showTip(event, 'fs11', 14)" class="i">Links</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs10', 15)" onmouseover="showTip(event, 'fs10', 15)" class="i">JsonProvider</span><span class="o">&lt;</span><span class="s">&quot;</span><span class="s">.</span><span class="s">.</span><span class="s">/</span><span class="s">.</span><span class="s">.</span><span class="s">/</span><span class="s">data</span><span class="s">/</span><span class="s">FSharp</span><span class="s">.</span><span class="s">Data</span><span class="s">.</span><span class="s">all</span><span class="s">.</span><span class="s">links</span><span class="s">.</span><span class="s">json</span><span class="s">&quot;</span><span class="o">&gt;</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs12', 16)" onmouseover="showTip(event, 'fs12', 16)" class="i">networkSize</span> <span onmouseout="hideTip(event, 'fs13', 17)" onmouseover="showTip(event, 'fs13', 17)" class="i">project</span> <span class="o">=</span> 
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs14', 18)" onmouseover="showTip(event, 'fs14', 18)" class="i">jsonNodes</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs9', 19)" onmouseover="showTip(event, 'fs9', 19)" class="i">Nodes</span><span class="o">.</span><span class="i">Load</span>(<span onmouseout="hideTip(event, 'fs3', 20)" onmouseover="showTip(event, 'fs3', 20)" class="i">outputDir</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fs13', 21)" onmouseover="showTip(event, 'fs13', 21)" class="i">project</span> <span class="o">+</span> <span class="s">&quot;</span><span class="s">.</span><span class="s">all</span><span class="s">.</span><span class="s">nodes</span><span class="s">.</span><span class="s">json</span><span class="s">&quot;</span>)
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs15', 22)" onmouseover="showTip(event, 'fs15', 22)" class="i">jsonLinks</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs11', 23)" onmouseover="showTip(event, 'fs11', 23)" class="i">Links</span><span class="o">.</span><span class="i">Load</span>(<span onmouseout="hideTip(event, 'fs3', 24)" onmouseover="showTip(event, 'fs3', 24)" class="i">outputDir</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fs13', 25)" onmouseover="showTip(event, 'fs13', 25)" class="i">project</span> <span class="o">+</span> <span class="s">&quot;</span><span class="s">.</span><span class="s">all</span><span class="s">.</span><span class="s">links</span><span class="s">.</span><span class="s">json</span><span class="s">&quot;</span>)
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs16', 26)" onmouseover="showTip(event, 'fs16', 26)" class="i">nodeCount</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 27)" onmouseover="showTip(event, 'fs14', 27)" class="i">jsonNodes</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 28)" onmouseover="showTip(event, 'fs9', 28)" class="i">Nodes</span><span class="o">.</span><span class="i">Length</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs17', 29)" onmouseover="showTip(event, 'fs17', 29)" class="i">linkCount</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs15', 30)" onmouseover="showTip(event, 'fs15', 30)" class="i">jsonLinks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs11', 31)" onmouseover="showTip(event, 'fs11', 31)" class="i">Links</span><span class="o">.</span><span class="i">Length</span>
+    <span onmouseout="hideTip(event, 'fs16', 32)" onmouseover="showTip(event, 'fs16', 32)" class="i">nodeCount</span>, <span onmouseout="hideTip(event, 'fs17', 33)" onmouseover="showTip(event, 'fs17', 33)" class="i">linkCount</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs18', 34)" onmouseover="showTip(event, 'fs18', 34)" class="i">nodeCount</span>, <span onmouseout="hideTip(event, 'fs19', 35)" onmouseover="showTip(event, 'fs19', 35)" class="i">linkCount</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs12', 36)" onmouseover="showTip(event, 'fs12', 36)" class="i">networkSize</span> <span onmouseout="hideTip(event, 'fs4', 37)" onmouseover="showTip(event, 'fs4', 37)" class="i">project</span>
+<span onmouseout="hideTip(event, 'fs20', 38)" onmouseover="showTip(event, 'fs20', 38)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Number</span><span class="s"> </span><span class="s">of</span><span class="s"> </span><span class="s">nodes</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">d</span><span class="s">,</span><span class="s"> </span><span class="s">number</span><span class="s"> </span><span class="s">of</span><span class="s"> </span><span class="s">links</span><span class="s">:</span><span class="s"> </span><span class="s">%</span><span class="s">d</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs18', 39)" onmouseover="showTip(event, 'fs18', 39)" class="i">nodeCount</span> <span onmouseout="hideTip(event, 'fs19', 40)" onmouseover="showTip(event, 'fs19', 40)" class="i">linkCount</span></pre>
+</td>
+</tr>
+</table>
+
+<pre><code>Number of nodes: 94, number of links: 173
+</code></pre>
+
+<p>This gives us basic size of the network. For further analysis, we will
+work with the adjacency matrix representation. Adjacency matrix
+is a binary matrix that has value <span class="math">\(1\)</span> in row <span class="math">\(i\)</span> and column <span class="math">\(j\)</span> if there is
+ <span class="math">\(i \rightarrow j\)</span> link in the original network. If there is no link, 
+ the matrix has <span class="math">\(0\)</span> in that position.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs21', 41)" onmouseover="showTip(event, 'fs21', 41)" class="i">MathNet</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs22', 42)" onmouseover="showTip(event, 'fs22', 42)" class="i">Numerics</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs23', 43)" onmouseover="showTip(event, 'fs23', 43)" class="i">LinearAlgebra</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs24', 44)" onmouseover="showTip(event, 'fs24', 44)" class="i">getAdjacencyMatrix</span> <span onmouseout="hideTip(event, 'fs13', 45)" onmouseover="showTip(event, 'fs13', 45)" class="i">project</span> <span class="o">=</span> 
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs14', 46)" onmouseover="showTip(event, 'fs14', 46)" class="i">jsonNodes</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs9', 47)" onmouseover="showTip(event, 'fs9', 47)" class="i">Nodes</span><span class="o">.</span><span class="i">Load</span>(<span onmouseout="hideTip(event, 'fs3', 48)" onmouseover="showTip(event, 'fs3', 48)" class="i">outputDir</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fs13', 49)" onmouseover="showTip(event, 'fs13', 49)" class="i">project</span> <span class="o">+</span> <span class="s">&quot;</span><span class="s">.</span><span class="s">all</span><span class="s">.</span><span class="s">nodes</span><span class="s">.</span><span class="s">json</span><span class="s">&quot;</span>)
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs15', 50)" onmouseover="showTip(event, 'fs15', 50)" class="i">jsonLinks</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs11', 51)" onmouseover="showTip(event, 'fs11', 51)" class="i">Links</span><span class="o">.</span><span class="i">Load</span>(<span onmouseout="hideTip(event, 'fs3', 52)" onmouseover="showTip(event, 'fs3', 52)" class="i">outputDir</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fs13', 53)" onmouseover="showTip(event, 'fs13', 53)" class="i">project</span> <span class="o">+</span> <span class="s">&quot;</span><span class="s">.</span><span class="s">all</span><span class="s">.</span><span class="s">links</span><span class="s">.</span><span class="s">json</span><span class="s">&quot;</span>)
+    
+    <span class="c">// Create adjacency matrix</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs25', 54)" onmouseover="showTip(event, 'fs25', 54)" class="i">nodeCount</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs14', 55)" onmouseover="showTip(event, 'fs14', 55)" class="i">jsonNodes</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 56)" onmouseover="showTip(event, 'fs9', 56)" class="i">Nodes</span><span class="o">.</span><span class="i">Length</span>
+    <span onmouseout="hideTip(event, 'fs26', 57)" onmouseover="showTip(event, 'fs26', 57)" class="i">seq</span> { <span class="k">for</span> <span onmouseout="hideTip(event, 'fs27', 58)" onmouseover="showTip(event, 'fs27', 58)" class="i">link</span> <span class="k">in</span> <span onmouseout="hideTip(event, 'fs15', 59)" onmouseover="showTip(event, 'fs15', 59)" class="i">jsonLinks</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs11', 60)" onmouseover="showTip(event, 'fs11', 60)" class="i">Links</span> <span class="k">-&gt;</span> 
+            <span onmouseout="hideTip(event, 'fs27', 61)" onmouseover="showTip(event, 'fs27', 61)" class="i">link</span><span class="o">.</span><span class="i">Source</span>, <span onmouseout="hideTip(event, 'fs27', 62)" onmouseover="showTip(event, 'fs27', 62)" class="i">link</span><span class="o">.</span><span class="i">Target</span>, <span class="n">1.0</span> }
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs28', 63)" onmouseover="showTip(event, 'fs28', 63)" class="i">SparseMatrix</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs29', 64)" onmouseover="showTip(event, 'fs29', 64)" class="i">ofSeqi</span> <span onmouseout="hideTip(event, 'fs25', 65)" onmouseover="showTip(event, 'fs25', 65)" class="i">nodeCount</span> <span onmouseout="hideTip(event, 'fs25', 66)" onmouseover="showTip(event, 'fs25', 66)" class="i">nodeCount</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs30', 67)" onmouseover="showTip(event, 'fs30', 67)" class="i">adjacencyMatrix</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs24', 68)" onmouseover="showTip(event, 'fs24', 68)" class="i">getAdjacencyMatrix</span> <span onmouseout="hideTip(event, 'fs4', 69)" onmouseover="showTip(event, 'fs4', 69)" class="i">project</span></pre>
+</td>
+</tr>
+</table>
+
+<p>The resulting adjacency matrix is very sparse:</p>
+
+<pre><code>SparseMatrix 94x94-Double 1.96 % Filled
+           0            0            0            0            1 ...            0
+           0            0            1            0            0 ...            0
+           0            0            0            0            1 ...            0
+           0            0            0            0            1 ...            0
+           0            0            0            0            0 ...            0
+           0            0            0            0            0 ...            0
+           0            0            0            0            0 ...            0
+         ...          ...          ...          ...          ... ...          ...
+           0            0            0            0            1 ...            0
+</code></pre>
+
+<h2>Computing basic network statistics</h2>
+
+<p>Using adjacency matrix, we can compute several basic network 
+characteristics. For example, how many nodes do not participate
+in any dependency? These nodes represent 
+standalone modules within the project. In the adjacency matrix, such 
+nodes have only zeros in their corresponding rows and columns because
+they are not connected to any other node.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs31', 70)" onmouseover="showTip(event, 'fs31', 70)" class="i">isolatedNodes</span> (<span onmouseout="hideTip(event, 'fs32', 71)" onmouseover="showTip(event, 'fs32', 71)" class="i">adjacencyMatrix</span><span class="o">:</span> <span onmouseout="hideTip(event, 'fs33', 72)" onmouseover="showTip(event, 'fs33', 72)" class="i">Matrix</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs34', 73)" onmouseover="showTip(event, 'fs34', 73)" class="i">float</span><span class="o">&gt;</span>) <span class="o">=</span> 
+    <span class="c">// number of rows (columns)</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs35', 74)" onmouseover="showTip(event, 'fs35', 74)" class="i">n</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs32', 75)" onmouseover="showTip(event, 'fs32', 75)" class="i">adjacencyMatrix</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs36', 76)" onmouseover="showTip(event, 'fs36', 76)" class="i">RowCount</span>   
+    <span onmouseout="hideTip(event, 'fs26', 77)" onmouseover="showTip(event, 'fs26', 77)" class="i">seq</span> { <span class="k">for</span> <span onmouseout="hideTip(event, 'fs37', 78)" onmouseover="showTip(event, 'fs37', 78)" class="i">node</span> <span class="k">in</span> <span class="n">0..</span><span onmouseout="hideTip(event, 'fs35', 79)" onmouseover="showTip(event, 'fs35', 79)" class="i">n</span><span class="o">-</span><span class="n">1</span> <span class="k">-&gt;</span>
+            <span class="k">if</span> (<span onmouseout="hideTip(event, 'fs32', 80)" onmouseover="showTip(event, 'fs32', 80)" class="i">adjacencyMatrix</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs38', 81)" onmouseover="showTip(event, 'fs38', 81)" class="i">Row</span>(<span onmouseout="hideTip(event, 'fs37', 82)" onmouseover="showTip(event, 'fs37', 82)" class="i">node</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs39', 83)" onmouseover="showTip(event, 'fs39', 83)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 84)" onmouseover="showTip(event, 'fs40', 84)" class="i">sum</span>) <span class="o">=</span> <span class="n">0.0</span>
+                <span class="o">&amp;&amp;</span> (<span onmouseout="hideTip(event, 'fs32', 85)" onmouseover="showTip(event, 'fs32', 85)" class="i">adjacencyMatrix</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs41', 86)" onmouseover="showTip(event, 'fs41', 86)" class="i">Column</span>(<span onmouseout="hideTip(event, 'fs37', 87)" onmouseover="showTip(event, 'fs37', 87)" class="i">node</span>) <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs39', 88)" onmouseover="showTip(event, 'fs39', 88)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 89)" onmouseover="showTip(event, 'fs40', 89)" class="i">sum</span>) <span class="o">=</span> <span class="n">0.0</span> 
+            <span class="k">then</span> <span class="n">1.0</span> <span class="k">else</span> <span class="n">0.0</span> }
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs39', 90)" onmouseover="showTip(event, 'fs39', 90)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 91)" onmouseover="showTip(event, 'fs40', 91)" class="i">sum</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs42', 92)" onmouseover="showTip(event, 'fs42', 92)" class="i">isolatedCount</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs31', 93)" onmouseover="showTip(event, 'fs31', 93)" class="i">isolatedNodes</span> <span onmouseout="hideTip(event, 'fs30', 94)" onmouseover="showTip(event, 'fs30', 94)" class="i">adjacencyMatrix</span>
+<span onmouseout="hideTip(event, 'fs20', 95)" onmouseover="showTip(event, 'fs20', 95)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Network</span><span class="s"> </span><span class="s">has</span><span class="s"> </span><span class="s">%</span><span class="s">.</span><span class="s">0</span><span class="s">f</span><span class="s"> </span><span class="s">isolated</span><span class="s"> </span><span class="s">nodes</span><span class="s">.</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs42', 96)" onmouseover="showTip(event, 'fs42', 96)" class="i">isolatedCount</span></pre>
+</td>
+</tr>
+</table>
+
+<pre><code>Network has 8 isolated nodes.
+</code></pre>
+
+<p>File with nodes <code>FSharp.Data.all.nodes.json</code> contains also information
+on the size of code in each node. Code size is equal to the number 
+of CIL instructions in all functions (methods) within a module (class).</p>
+
+<p>We can extract the total size of the 
+project using JSON type provider.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+<span class="l">6: </span>
+<span class="l">7: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs43', 97)" onmouseover="showTip(event, 'fs43', 97)" class="i">getTotalCodeSize</span> <span onmouseout="hideTip(event, 'fs13', 98)" onmouseover="showTip(event, 'fs13', 98)" class="i">project</span> <span class="o">=</span> 
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs14', 99)" onmouseover="showTip(event, 'fs14', 99)" class="i">jsonNodes</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs9', 100)" onmouseover="showTip(event, 'fs9', 100)" class="i">Nodes</span><span class="o">.</span><span class="i">Load</span>(<span onmouseout="hideTip(event, 'fs3', 101)" onmouseover="showTip(event, 'fs3', 101)" class="i">outputDir</span> <span class="o">+</span> <span onmouseout="hideTip(event, 'fs13', 102)" onmouseover="showTip(event, 'fs13', 102)" class="i">project</span> <span class="o">+</span> <span class="s">&quot;</span><span class="s">.</span><span class="s">all</span><span class="s">.</span><span class="s">nodes</span><span class="s">.</span><span class="s">json</span><span class="s">&quot;</span>)
+    <span onmouseout="hideTip(event, 'fs26', 103)" onmouseover="showTip(event, 'fs26', 103)" class="i">seq</span> { <span class="k">for</span> <span onmouseout="hideTip(event, 'fs44', 104)" onmouseover="showTip(event, 'fs44', 104)" class="i">node</span> <span class="k">in</span> <span onmouseout="hideTip(event, 'fs14', 105)" onmouseover="showTip(event, 'fs14', 105)" class="i">jsonNodes</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs9', 106)" onmouseover="showTip(event, 'fs9', 106)" class="i">Nodes</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs44', 107)" onmouseover="showTip(event, 'fs44', 107)" class="i">node</span><span class="o">.</span><span class="i">CodeSize</span> }
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs39', 108)" onmouseover="showTip(event, 'fs39', 108)" class="i">Seq</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs40', 109)" onmouseover="showTip(event, 'fs40', 109)" class="i">sum</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs45', 110)" onmouseover="showTip(event, 'fs45', 110)" class="i">codeSize</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs43', 111)" onmouseover="showTip(event, 'fs43', 111)" class="i">getTotalCodeSize</span> <span onmouseout="hideTip(event, 'fs4', 112)" onmouseover="showTip(event, 'fs4', 112)" class="i">project</span>
+<span onmouseout="hideTip(event, 'fs20', 113)" onmouseover="showTip(event, 'fs20', 113)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Total</span><span class="s"> </span><span class="s">code</span><span class="s"> </span><span class="s">size</span><span class="s"> </span><span class="s">of</span><span class="s"> </span><span class="s">the</span><span class="s"> </span><span class="s">project</span><span class="s"> </span><span class="s">is</span><span class="s"> </span><span class="s">%</span><span class="s">d</span><span class="s"> </span><span class="s">instructions</span><span class="s">.</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs45', 114)" onmouseover="showTip(event, 'fs45', 114)" class="i">codeSize</span></pre>
+</td>
+</tr>
+</table>
+
+<pre><code>Total code size of the project is 135001 instructions.
+</code></pre>
+
+<h2>Diameter using R</h2>
+
+<p>To compute some more advanced graph statistics, we will turn to R 
+with <a href="http://bluemountaincapital.github.io/FSharpRProvider/">RProvider</a>. 
+To compute network diameter, we will use the <code>igraph</code> package from R.
+For this step, you need to have an installation of R on your machine.
+To be able to use package <code>igraph</code>, you will have to open an R session
+and run the following command:</p>
+
+<pre lang="R">install.packages(&quot;igraph&quot;)</pre>
+
+<p>Then you need to restart Visual Studio so that RProvider can detect
+installed packages.</p>
+
+<p>To be able to use the R function for diameters, we need to transform
+the adjacency matrix into a format that we can pass into R.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+<span class="l">11: </span>
+<span class="l">12: </span>
+<span class="l">13: </span>
+<span class="l">14: </span>
+<span class="l">15: </span>
+<span class="l">16: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs46', 115)" onmouseover="showTip(event, 'fs46', 115)" class="i">RProvider</span>
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs46', 116)" onmouseover="showTip(event, 'fs46', 116)" class="i">RProvider</span><span class="o">.</span><span class="i">``base``</span>
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs46', 117)" onmouseover="showTip(event, 'fs46', 117)" class="i">RProvider</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs47', 118)" onmouseover="showTip(event, 'fs47', 118)" class="i">igraph</span>
+
+<span class="c">// transform adjacency matrix into igraph adjacency matrix</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs48', 119)" onmouseover="showTip(event, 'fs48', 119)" class="i">igraphNetwork</span> (<span onmouseout="hideTip(event, 'fs32', 120)" onmouseover="showTip(event, 'fs32', 120)" class="i">adjacencyMatrix</span><span class="o">:</span> <span onmouseout="hideTip(event, 'fs33', 121)" onmouseover="showTip(event, 'fs33', 121)" class="i">Matrix</span><span class="o">&lt;</span><span onmouseout="hideTip(event, 'fs34', 122)" onmouseover="showTip(event, 'fs34', 122)" class="i">float</span><span class="o">&gt;</span>) <span class="o">=</span>
+    <span onmouseout="hideTip(event, 'fs49', 123)" onmouseover="showTip(event, 'fs49', 123)" class="i">Array2D</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs50', 124)" onmouseover="showTip(event, 'fs50', 124)" class="i">init</span> <span onmouseout="hideTip(event, 'fs32', 125)" onmouseover="showTip(event, 'fs32', 125)" class="i">adjacencyMatrix</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs36', 126)" onmouseover="showTip(event, 'fs36', 126)" class="i">RowCount</span> <span onmouseout="hideTip(event, 'fs32', 127)" onmouseover="showTip(event, 'fs32', 127)" class="i">adjacencyMatrix</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs51', 128)" onmouseover="showTip(event, 'fs51', 128)" class="i">ColumnCount</span>
+        (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs52', 129)" onmouseover="showTip(event, 'fs52', 129)" class="i">i</span> <span onmouseout="hideTip(event, 'fs53', 130)" onmouseover="showTip(event, 'fs53', 130)" class="i">j</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs32', 131)" onmouseover="showTip(event, 'fs32', 131)" class="i">adjacencyMatrix</span><span class="o">.</span>[<span onmouseout="hideTip(event, 'fs52', 132)" onmouseover="showTip(event, 'fs52', 132)" class="i">i</span>,<span onmouseout="hideTip(event, 'fs53', 133)" onmouseover="showTip(event, 'fs53', 133)" class="i">j</span>])
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs54', 134)" onmouseover="showTip(event, 'fs54', 134)" class="i">R</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs55', 135)" onmouseover="showTip(event, 'fs55', 135)" class="i">as_matrix</span>
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs56', 136)" onmouseover="showTip(event, 'fs56', 136)" class="i">R</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs57', 137)" onmouseover="showTip(event, 'fs57', 137)" class="i">graph_adjacency</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs58', 138)" onmouseover="showTip(event, 'fs58', 138)" class="i">adjacencyMatrixR</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs48', 139)" onmouseover="showTip(event, 'fs48', 139)" class="i">igraphNetwork</span> <span onmouseout="hideTip(event, 'fs30', 140)" onmouseover="showTip(event, 'fs30', 140)" class="i">adjacencyMatrix</span>
+
+<span class="c">// compute diameter of the network</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs59', 141)" onmouseover="showTip(event, 'fs59', 141)" class="i">diameter</span><span class="o">:</span><span onmouseout="hideTip(event, 'fs34', 142)" onmouseover="showTip(event, 'fs34', 142)" class="i">float</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs56', 143)" onmouseover="showTip(event, 'fs56', 143)" class="i">R</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs60', 144)" onmouseover="showTip(event, 'fs60', 144)" class="i">diameter</span>(<span onmouseout="hideTip(event, 'fs58', 145)" onmouseover="showTip(event, 'fs58', 145)" class="i">adjacencyMatrixR</span>)<span class="o">.</span><span class="i">GetValue</span>()
+<span onmouseout="hideTip(event, 'fs20', 146)" onmouseover="showTip(event, 'fs20', 146)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">Diameter</span><span class="s"> </span><span class="s">of</span><span class="s"> </span><span class="s">the</span><span class="s"> </span><span class="s">network</span><span class="s"> </span><span class="s">is</span><span class="s"> </span><span class="s">%</span><span class="s">.</span><span class="s">0</span><span class="s">f</span><span class="s"> </span><span class="s">nodes</span><span class="s">.</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs59', 147)" onmouseover="showTip(event, 'fs59', 147)" class="i">diameter</span>    </pre>
+</td>
+</tr>
+</table>
+
+<pre><code>Diameter of the network is 6 nodes.
+</code></pre>
+
+<h2>Graph motifs</h2>
+
+<p>Motifs are small subgraphs with defined structure that occur in graphs.
+We will again use R package <code>igraph</code> to search for motifs in the project.
+The R function <code>graph_motifs</code> can efficiently count motifs on 3 or
+4 nodes. As an input we only need to supply the R adjacency matrix.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+<span class="l">6: </span>
+<span class="l">7: </span>
+<span class="l">8: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs61', 148)" onmouseover="showTip(event, 'fs61', 148)" class="i">graphMotifs</span> <span onmouseout="hideTip(event, 'fs62', 149)" onmouseover="showTip(event, 'fs62', 149)" class="i">size</span> <span class="o">=</span>
+    <span class="k">if</span> <span onmouseout="hideTip(event, 'fs62', 150)" onmouseover="showTip(event, 'fs62', 150)" class="i">size</span> <span class="o">&lt;&gt;</span> <span class="n">3</span> <span class="o">&amp;&amp;</span> <span onmouseout="hideTip(event, 'fs62', 151)" onmouseover="showTip(event, 'fs62', 151)" class="i">size</span> <span class="o">&lt;&gt;</span> <span class="n">4</span> <span class="k">then</span> 
+        <span onmouseout="hideTip(event, 'fs63', 152)" onmouseover="showTip(event, 'fs63', 152)" class="i">failwith</span> <span class="s">&quot;</span><span class="s">Only</span><span class="s"> </span><span class="s">motifs</span><span class="s"> </span><span class="s">of</span><span class="s"> </span><span class="s">size</span><span class="s"> </span><span class="s">3</span><span class="s"> </span><span class="s">and</span><span class="s"> </span><span class="s">4</span><span class="s"> </span><span class="s">are</span><span class="s"> </span><span class="s">supported</span><span class="s">.</span><span class="s">&quot;</span>
+    <span class="k">let</span> (<span onmouseout="hideTip(event, 'fs64', 153)" onmouseover="showTip(event, 'fs64', 153)" class="i">motifs</span><span class="o">:</span> <span onmouseout="hideTip(event, 'fs34', 154)" onmouseover="showTip(event, 'fs34', 154)" class="i">float</span> []) <span class="o">=</span> <span onmouseout="hideTip(event, 'fs56', 155)" onmouseover="showTip(event, 'fs56', 155)" class="i">R</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs65', 156)" onmouseover="showTip(event, 'fs65', 156)" class="i">graph_motifs</span>(<span onmouseout="hideTip(event, 'fs58', 157)" onmouseover="showTip(event, 'fs58', 157)" class="i">adjacencyMatrixR</span>, <span onmouseout="hideTip(event, 'fs62', 158)" onmouseover="showTip(event, 'fs62', 158)" class="i">size</span>)<span class="o">.</span><span class="i">GetValue</span>()
+    <span onmouseout="hideTip(event, 'fs66', 159)" onmouseover="showTip(event, 'fs66', 159)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs67', 160)" onmouseover="showTip(event, 'fs67', 160)" class="i">zip</span> [| <span class="n">0..</span><span onmouseout="hideTip(event, 'fs64', 161)" onmouseover="showTip(event, 'fs64', 161)" class="i">motifs</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs68', 162)" onmouseover="showTip(event, 'fs68', 162)" class="i">Length</span><span class="o">-</span><span class="n">1</span> |] <span onmouseout="hideTip(event, 'fs64', 163)" onmouseover="showTip(event, 'fs64', 163)" class="i">motifs</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs69', 164)" onmouseover="showTip(event, 'fs69', 164)" class="i">motifs3</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs61', 165)" onmouseover="showTip(event, 'fs61', 165)" class="i">graphMotifs</span> <span class="n">3</span>
+<span onmouseout="hideTip(event, 'fs20', 166)" onmouseover="showTip(event, 'fs20', 166)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">%</span><span class="s">A</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs69', 167)" onmouseover="showTip(event, 'fs69', 167)" class="i">motifs3</span></pre>
+</td>
+</tr>
+</table>
+
+<pre><code>[|(0, nan); (1, nan); (2, 179.0); (3, nan); (4, 248.0); (5, 7.0); (6, 197.0);
+  (7, 95.0); (8, 0.0); (9, 11.0); (10, 0.0); (11, 0.0); (12, 0.0); (13, 7.0);
+  (14, 0.0); (15, 0.0)|]
+</code></pre>
+
+<p>The function <code>R.graph_motifs</code> returns counts of each possible motif on 
+3 nodes in the network, ordered by their isomorphism class. 
+The F# wrapper function <code>graphMotifs</code> returns an array of tupes where the first element
+is the isomorphism class of the motif and the second element is the motif count.</p>
+
+<p>Arrangements on 3 nodes that are not connected
+are not considered as motifs and the function returns <code>nan</code> for those. There are
+16 possible subgraphs on 3 nodes but only 13 of them are valid motifs.</p>
+
+<p>What motif is the most common in <code>FSharp.Data</code>?</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+<span class="l">5: </span>
+<span class="l">6: </span>
+<span class="l">7: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs70', 168)" onmouseover="showTip(event, 'fs70', 168)" class="i">mostCommonMotif</span> <span onmouseout="hideTip(event, 'fs71', 169)" onmouseover="showTip(event, 'fs71', 169)" class="i">motifCounts</span> <span class="o">=</span> 
+    <span onmouseout="hideTip(event, 'fs71', 170)" onmouseover="showTip(event, 'fs71', 170)" class="i">motifCounts</span>
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs66', 171)" onmouseover="showTip(event, 'fs66', 171)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs72', 172)" onmouseover="showTip(event, 'fs72', 172)" class="i">filter</span> (<span class="k">fun</span> <span onmouseout="hideTip(event, 'fs73', 173)" onmouseover="showTip(event, 'fs73', 173)" class="i">x</span> <span class="k">-&gt;</span> <span onmouseout="hideTip(event, 'fs74', 174)" onmouseover="showTip(event, 'fs74', 174)" class="i">not</span> (<span onmouseout="hideTip(event, 'fs75', 175)" onmouseover="showTip(event, 'fs75', 175)" class="i">Double</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs76', 176)" onmouseover="showTip(event, 'fs76', 176)" class="i">IsNaN</span>(<span onmouseout="hideTip(event, 'fs77', 177)" onmouseover="showTip(event, 'fs77', 177)" class="i">snd</span> <span onmouseout="hideTip(event, 'fs73', 178)" onmouseover="showTip(event, 'fs73', 178)" class="i">x</span>)))
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs66', 179)" onmouseover="showTip(event, 'fs66', 179)" class="i">Array</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs78', 180)" onmouseover="showTip(event, 'fs78', 180)" class="i">maxBy</span> <span onmouseout="hideTip(event, 'fs77', 181)" onmouseover="showTip(event, 'fs77', 181)" class="i">snd</span>
+
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs79', 182)" onmouseover="showTip(event, 'fs79', 182)" class="i">isoclass</span>, <span onmouseout="hideTip(event, 'fs80', 183)" onmouseover="showTip(event, 'fs80', 183)" class="i">count</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs70', 184)" onmouseover="showTip(event, 'fs70', 184)" class="i">mostCommonMotif</span> <span onmouseout="hideTip(event, 'fs69', 185)" onmouseover="showTip(event, 'fs69', 185)" class="i">motifs3</span>
+<span onmouseout="hideTip(event, 'fs20', 186)" onmouseover="showTip(event, 'fs20', 186)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">The</span><span class="s"> </span><span class="s">most</span><span class="s"> </span><span class="s">common</span><span class="s"> </span><span class="s">motif</span><span class="s"> </span><span class="s">on</span><span class="s"> </span><span class="s">3</span><span class="s"> </span><span class="s">nodes</span><span class="s"> </span><span class="s">is</span><span class="s"> </span><span class="s">motif</span><span class="s"> </span><span class="s">number</span><span class="s"> </span><span class="s">%</span><span class="s">d</span><span class="s"> </span><span class="s">which</span><span class="s"> </span><span class="s">occurs</span><span class="s"> </span><span class="s">%</span><span class="s">.</span><span class="s">0</span><span class="s">f</span><span class="s"> </span><span class="s">times</span><span class="s">.</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs79', 187)" onmouseover="showTip(event, 'fs79', 187)" class="i">isoclass</span> <span onmouseout="hideTip(event, 'fs80', 188)" onmouseover="showTip(event, 'fs80', 188)" class="i">count</span></pre>
+</td>
+</tr>
+</table>
+
+<pre><code>The most common motif on 3 nodes is motif number 4 which occurs 248 times.
+</code></pre>
+
+<p>The isomprhism class itself does not tell us much about the motif. We can find the 
+corresponding graph by plotting it:</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l"> 1: </span>
+<span class="l"> 2: </span>
+<span class="l"> 3: </span>
+<span class="l"> 4: </span>
+<span class="l"> 5: </span>
+<span class="l"> 6: </span>
+<span class="l"> 7: </span>
+<span class="l"> 8: </span>
+<span class="l"> 9: </span>
+<span class="l">10: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs81', 189)" onmouseover="showTip(event, 'fs81', 189)" class="i">plotMotif</span> <span onmouseout="hideTip(event, 'fs82', 190)" onmouseover="showTip(event, 'fs82', 190)" class="i">size</span> <span onmouseout="hideTip(event, 'fs83', 191)" onmouseover="showTip(event, 'fs83', 191)" class="i">isoclass</span> <span class="o">=</span>
+    <span class="k">let</span> <span onmouseout="hideTip(event, 'fs84', 192)" onmouseover="showTip(event, 'fs84', 192)" class="i">isoGraph</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs56', 193)" onmouseover="showTip(event, 'fs56', 193)" class="i">R</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs85', 194)" onmouseover="showTip(event, 'fs85', 194)" class="i">graph_isocreate</span>(<span onmouseout="hideTip(event, 'fs82', 195)" onmouseover="showTip(event, 'fs82', 195)" class="i">size</span><span class="o">=</span><span onmouseout="hideTip(event, 'fs82', 196)" onmouseover="showTip(event, 'fs82', 196)" class="i">size</span>, <span class="i">number</span><span class="o">=</span><span onmouseout="hideTip(event, 'fs83', 197)" onmouseover="showTip(event, 'fs83', 197)" class="i">isoclass</span>)
+    <span onmouseout="hideTip(event, 'fs86', 198)" onmouseover="showTip(event, 'fs86', 198)" class="i">namedParams</span> [ 
+        <span class="s">&quot;</span><span class="s">x</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs87', 199)" onmouseover="showTip(event, 'fs87', 199)" class="i">box</span> <span onmouseout="hideTip(event, 'fs84', 200)" onmouseover="showTip(event, 'fs84', 200)" class="i">isoGraph</span>;
+        <span class="s">&quot;</span><span class="s">edge</span><span class="s">.</span><span class="s">arrow</span><span class="s">.</span><span class="s">width</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs87', 201)" onmouseover="showTip(event, 'fs87', 201)" class="i">box</span> <span class="n">1</span>;
+        <span class="s">&quot;</span><span class="s">edge</span><span class="s">.</span><span class="s">arrow</span><span class="s">.</span><span class="s">size</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs87', 202)" onmouseover="showTip(event, 'fs87', 202)" class="i">box</span> <span class="n">1.5</span>;
+        <span class="s">&quot;</span><span class="s">vertex</span><span class="s">.</span><span class="s">size</span><span class="s">&quot;</span>, <span onmouseout="hideTip(event, 'fs87', 203)" onmouseover="showTip(event, 'fs87', 203)" class="i">box</span> <span class="n">50</span>]
+    <span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs56', 204)" onmouseover="showTip(event, 'fs56', 204)" class="i">R</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs88', 205)" onmouseover="showTip(event, 'fs88', 205)" class="i">plot_igraph</span>
+
+<span onmouseout="hideTip(event, 'fs81', 206)" onmouseover="showTip(event, 'fs81', 206)" class="i">plotMotif</span> <span class="n">3</span> <span onmouseout="hideTip(event, 'fs79', 207)" onmouseover="showTip(event, 'fs79', 207)" class="i">isoclass</span></pre>
+</td>
+</tr>
+</table>
+
+<p><img src="./images/chart1.png" alt="" /></p>
+
+<p>The most common motif in the project is a simple chain of three nodes. 
+We can plot the whole motif profile of the project to get an overview of frequencies
+of all motifs.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+<span class="l">4: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">open</span> <span onmouseout="hideTip(event, 'fs7', 208)" onmouseover="showTip(event, 'fs7', 208)" class="i">FSharp</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs89', 209)" onmouseover="showTip(event, 'fs89', 209)" class="i">Charting</span>
+
+<span onmouseout="hideTip(event, 'fs90', 210)" onmouseover="showTip(event, 'fs90', 210)" class="i">Chart</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs91', 211)" onmouseover="showTip(event, 'fs91', 211)" class="i">Bar</span>(<span onmouseout="hideTip(event, 'fs69', 212)" onmouseover="showTip(event, 'fs69', 212)" class="i">motifs3</span>, <span class="i">Title</span><span class="o">=</span><span class="s">&quot;</span><span class="s">Motif</span><span class="s"> </span><span class="s">profile</span><span class="s">&quot;</span>, <span class="i">YTitle</span><span class="o">=</span><span class="s">&quot;</span><span class="s">Counts</span><span class="s">&quot;</span>, <span class="i">XTitle</span><span class="o">=</span><span class="s">&quot;</span><span class="s">Motif</span><span class="s">&quot;</span>)
+<span class="o">|&gt;</span> <span onmouseout="hideTip(event, 'fs90', 213)" onmouseover="showTip(event, 'fs90', 213)" class="i">Chart</span><span class="o">.</span><span onmouseout="hideTip(event, 'fs92', 214)" onmouseover="showTip(event, 'fs92', 214)" class="i">WithXAxis</span>(<span class="i">Min</span><span class="o">=</span><span class="n">0.0</span>,<span class="i">Max</span><span class="o">=</span><span class="n">15.0</span>)</pre>
+</td>
+</tr>
+</table>
+
+<p><img src="./images/chart2.png" alt="" /></p>
+
+<p>Similarly we can find which motif on 4 nodes is the most common in the project.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+<span class="l">2: </span>
+<span class="l">3: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs93', 215)" onmouseover="showTip(event, 'fs93', 215)" class="i">motifs4</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs61', 216)" onmouseover="showTip(event, 'fs61', 216)" class="i">graphMotifs</span> <span class="n">4</span>
+<span class="k">let</span> <span onmouseout="hideTip(event, 'fs94', 217)" onmouseover="showTip(event, 'fs94', 217)" class="i">isoclass4</span>, <span onmouseout="hideTip(event, 'fs95', 218)" onmouseover="showTip(event, 'fs95', 218)" class="i">count4</span> <span class="o">=</span> <span onmouseout="hideTip(event, 'fs70', 219)" onmouseover="showTip(event, 'fs70', 219)" class="i">mostCommonMotif</span> <span onmouseout="hideTip(event, 'fs93', 220)" onmouseover="showTip(event, 'fs93', 220)" class="i">motifs4</span>
+<span onmouseout="hideTip(event, 'fs20', 221)" onmouseover="showTip(event, 'fs20', 221)" class="i">printfn</span> <span class="s">&quot;</span><span class="s">The</span><span class="s"> </span><span class="s">most</span><span class="s"> </span><span class="s">common</span><span class="s"> </span><span class="s">motif</span><span class="s"> </span><span class="s">on</span><span class="s"> </span><span class="s">4</span><span class="s"> </span><span class="s">nodes</span><span class="s"> </span><span class="s">is</span><span class="s"> </span><span class="s">motif</span><span class="s"> </span><span class="s">number</span><span class="s"> </span><span class="s">%</span><span class="s">d</span><span class="s"> </span><span class="s">which</span><span class="s"> </span><span class="s">occurs</span><span class="s"> </span><span class="s">%</span><span class="s">.</span><span class="s">0</span><span class="s">f</span><span class="s"> </span><span class="s">times</span><span class="s">.</span><span class="s">&quot;</span> <span onmouseout="hideTip(event, 'fs94', 222)" onmouseover="showTip(event, 'fs94', 222)" class="i">isoclass4</span> <span onmouseout="hideTip(event, 'fs95', 223)" onmouseover="showTip(event, 'fs95', 223)" class="i">count4</span></pre>
+</td>
+</tr>
+</table>
+
+<pre><code>The most common motif on 4 nodes is motif number 41 which occurs 591 times.
+</code></pre>
+
+<p>Again, we plot the motif to find out what graph the isomoprhism class corresponds to.</p>
+
+<table class="pre"><tr><td class="lines"><pre class="fssnip">
+<span class="l">1: </span>
+</pre>
+</td>
+<td class="snippet"><pre class="fssnip">
+<span onmouseout="hideTip(event, 'fs81', 224)" onmouseover="showTip(event, 'fs81', 224)" class="i">plotMotif</span> <span class="n">4</span> <span onmouseout="hideTip(event, 'fs94', 225)" onmouseover="showTip(event, 'fs94', 225)" class="i">isoclass4</span></pre>
+</td>
+</tr>
+</table>
+
+<p><img src="./images/chart3.png" alt="" /></p>
+
+<div class="tip" id="fs1">val projectAssembly : string<br /><br />Full name: AnalyseCodeNetworks.projectAssembly</div>
+<div class="tip" id="fs2">// Set current directory so that Mono.Cecil is able to find FSharp.Core.dll<br />System.IO.Directory.SetCurrentDirectory(__SOURCE_DIRECTORY__ + &quot;/packages/FSharp.Core/&quot;)<br /><br />#r @&quot;packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.dll&quot;<br />#r @&quot;packages\Mono.Cecil.0.9.5.4\lib\net40\Mono.Cecil.Rocks.dll&quot;<br />#r @&quot;packages\QuickGraph.3.6.61119.7\lib\net4\QuickGraph.dll&quot;</div>
+<div class="tip" id="fs3">val outputDir : string<br /><br />Full name: AnalyseCodeNetworks.outputDir</div>
+<div class="tip" id="fs4">val project : string<br /><br />Full name: AnalyseCodeNetworks.project</div>
+<div class="tip" id="fs5">module DependencyNetwork</div>
+<div class="tip" id="fs6">val generateNetwork : projectName:string -&gt; assemblyName:string -&gt; outputDir:string -&gt; unit<br /><br />Full name: DependencyNetwork.generateNetwork<br /><em><br /><br />&#160;Extract dependency network from assembly and save it in JSON format</em></div>
+<div class="tip" id="fs7">namespace FSharp</div>
+<div class="tip" id="fs8">namespace FSharp.Data</div>
+<div class="tip" id="fs9">type Nodes = obj<br /><br />Full name: AnalyseCodeNetworks.Nodes</div>
+<div class="tip" id="fs10">type JsonProvider<br /><br />Full name: FSharp.Data.JsonProvider<br /><em><br /><br />&lt;summary&gt;Typed representation of a JSON document.&lt;/summary&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;Sample&#39;&gt;Location of a JSON sample file or a string containing a sample JSON document.&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;SampleIsList&#39;&gt;If true, sample should be a list of individual samples for the inference.&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;RootName&#39;&gt;The name to be used to the root type. Defaults to `Root`.&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;Culture&#39;&gt;The culture used for parsing numbers and dates.&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;ResolutionFolder&#39;&gt;A directory that is used when resolving relative file references (at design time and in hosted execution).&lt;/param&gt;<br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&lt;param name=&#39;EmbeddedResource&#39;&gt;When specified, the type provider first attempts to load the sample from the specified resource <br />&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;(e.g. &#39;MyCompany.MyAssembly, resource_name.json&#39;). This is useful when exposing types generated by the type provider.&lt;/param&gt;</em></div>
+<div class="tip" id="fs11">type Links = obj<br /><br />Full name: AnalyseCodeNetworks.Links</div>
+<div class="tip" id="fs12">val networkSize : project:&#39;a -&gt; &#39;b * &#39;c<br /><br />Full name: AnalyseCodeNetworks.networkSize</div>
+<div class="tip" id="fs13">val project : &#39;a</div>
+<div class="tip" id="fs14">val jsonNodes : obj</div>
+<div class="tip" id="fs15">val jsonLinks : obj</div>
+<div class="tip" id="fs16">val nodeCount : &#39;b</div>
+<div class="tip" id="fs17">val linkCount : &#39;c</div>
+<div class="tip" id="fs18">val nodeCount : int<br /><br />Full name: AnalyseCodeNetworks.nodeCount</div>
+<div class="tip" id="fs19">val linkCount : int<br /><br />Full name: AnalyseCodeNetworks.linkCount</div>
+<div class="tip" id="fs20">val printfn : format:Printf.TextWriterFormat&lt;&#39;T&gt; -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.ExtraTopLevelOperators.printfn</div>
+<div class="tip" id="fs21">namespace MathNet</div>
+<div class="tip" id="fs22">namespace MathNet.Numerics</div>
+<div class="tip" id="fs23">namespace MathNet.Numerics.LinearAlgebra</div>
+<div class="tip" id="fs24">val getAdjacencyMatrix : project:&#39;a -&gt; Matrix&lt;float&gt;<br /><br />Full name: AnalyseCodeNetworks.getAdjacencyMatrix</div>
+<div class="tip" id="fs25">val nodeCount : int</div>
+<div class="tip" id="fs26">Multiple items<br />val seq : sequence:seq&lt;&#39;T&gt; -&gt; seq&lt;&#39;T&gt;<br /><br />Full name: Microsoft.FSharp.Core.Operators.seq<br /><br />--------------------<br />type seq&lt;&#39;T&gt; = Collections.Generic.IEnumerable&lt;&#39;T&gt;<br /><br />Full name: Microsoft.FSharp.Collections.seq&lt;_&gt;</div>
+<div class="tip" id="fs27">val link : obj</div>
+<div class="tip" id="fs28">module SparseMatrix<br /><br />from MathNet.Numerics.LinearAlgebra</div>
+<div class="tip" id="fs29">val ofSeqi : rows:int -&gt; cols:int -&gt; indexed:#seq&lt;int * int * &#39;T&gt; -&gt; Matrix&lt;&#39;T&gt; (requires default constructor and value type and &#39;T :&gt; ValueType and &#39;T :&gt; IEquatable&lt;&#39;T&gt; and &#39;T :&gt; IFormattable)<br /><br />Full name: MathNet.Numerics.LinearAlgebra.SparseMatrix.ofSeqi</div>
+<div class="tip" id="fs30">val adjacencyMatrix : Matrix&lt;float&gt;<br /><br />Full name: AnalyseCodeNetworks.adjacencyMatrix</div>
+<div class="tip" id="fs31">val isolatedNodes : adjacencyMatrix:Matrix&lt;float&gt; -&gt; float<br /><br />Full name: AnalyseCodeNetworks.isolatedNodes</div>
+<div class="tip" id="fs32">val adjacencyMatrix : Matrix&lt;float&gt;</div>
+<div class="tip" id="fs33">type Matrix&lt;&#39;T (requires default constructor and value type and &#39;T :&gt; ValueType and &#39;T :&gt; IEquatable&lt;&#39;T&gt; and &#39;T :&gt; IFormattable)&gt; =<br />&#160;&#160;member Add : scalar:&#39;T -&gt; Matrix&lt;&#39;T&gt; + 3 overloads<br />&#160;&#160;member Append : right:Matrix&lt;&#39;T&gt; -&gt; Matrix&lt;&#39;T&gt; + 1 overload<br />&#160;&#160;member At : row:int * column:int -&gt; &#39;T + 1 overload<br />&#160;&#160;member Cholesky : unit -&gt; Cholesky&lt;&#39;T&gt;<br />&#160;&#160;member Clear : unit -&gt; unit<br />&#160;&#160;member ClearColumn : columnIndex:int -&gt; unit<br />&#160;&#160;member ClearRow : rowIndex:int -&gt; unit<br />&#160;&#160;member ClearSubMatrix : rowIndex:int * rowCount:int * columnIndex:int * columnCount:int -&gt; unit<br />&#160;&#160;member Clone : unit -&gt; Matrix&lt;&#39;T&gt;<br />&#160;&#160;member Column : index:int -&gt; Vector&lt;&#39;T&gt; + 3 overloads<br />&#160;&#160;...<br /><br />Full name: MathNet.Numerics.LinearAlgebra.Matrix&lt;_&gt;</div>
+<div class="tip" id="fs34">Multiple items<br />val float : value:&#39;T -&gt; float (requires member op_Explicit)<br /><br />Full name: Microsoft.FSharp.Core.Operators.float<br /><br />--------------------<br />type float = Double<br /><br />Full name: Microsoft.FSharp.Core.float<br /><br />--------------------<br />type float&lt;&#39;Measure&gt; = float<br /><br />Full name: Microsoft.FSharp.Core.float&lt;_&gt;</div>
+<div class="tip" id="fs35">val n : int</div>
+<div class="tip" id="fs36">property Matrix.RowCount: int</div>
+<div class="tip" id="fs37">val node : int</div>
+<div class="tip" id="fs38">Matrix.Row(index: int) : Vector&lt;float&gt;<br />Matrix.Row(index: int, result: Vector&lt;float&gt;) : unit<br />Matrix.Row(rowIndex: int, columnIndex: int, length: int) : Vector&lt;float&gt;<br />Matrix.Row(rowIndex: int, columnIndex: int, length: int, result: Vector&lt;float&gt;) : unit</div>
+<div class="tip" id="fs39">module Seq<br /><br />from Microsoft.FSharp.Collections</div>
+<div class="tip" id="fs40">val sum : source:seq&lt;&#39;T&gt; -&gt; &#39;T (requires member ( + ) and member get_Zero)<br /><br />Full name: Microsoft.FSharp.Collections.Seq.sum</div>
+<div class="tip" id="fs41">Matrix.Column(index: int) : Vector&lt;float&gt;<br />Matrix.Column(index: int, result: Vector&lt;float&gt;) : unit<br />Matrix.Column(columnIndex: int, rowIndex: int, length: int) : Vector&lt;float&gt;<br />Matrix.Column(columnIndex: int, rowIndex: int, length: int, result: Vector&lt;float&gt;) : unit</div>
+<div class="tip" id="fs42">val isolatedCount : float<br /><br />Full name: AnalyseCodeNetworks.isolatedCount</div>
+<div class="tip" id="fs43">val getTotalCodeSize : project:&#39;a -&gt; int<br /><br />Full name: AnalyseCodeNetworks.getTotalCodeSize</div>
+<div class="tip" id="fs44">val node : obj</div>
+<div class="tip" id="fs45">val codeSize : int<br /><br />Full name: AnalyseCodeNetworks.codeSize</div>
+<div class="tip" id="fs46">namespace RProvider</div>
+<div class="tip" id="fs47">namespace RProvider.igraph</div>
+<div class="tip" id="fs48">val igraphNetwork : adjacencyMatrix:Matrix&lt;float&gt; -&gt; RDotNet.SymbolicExpression<br /><br />Full name: AnalyseCodeNetworks.igraphNetwork</div>
+<div class="tip" id="fs49">module Array2D<br /><br />from Microsoft.FSharp.Collections</div>
+<div class="tip" id="fs50">val init : length1:int -&gt; length2:int -&gt; initializer:(int -&gt; int -&gt; &#39;T) -&gt; &#39;T [,]<br /><br />Full name: Microsoft.FSharp.Collections.Array2D.init</div>
+<div class="tip" id="fs51">property Matrix.ColumnCount: int</div>
+<div class="tip" id="fs52">val i : int</div>
+<div class="tip" id="fs53">val j : int</div>
+<div class="tip" id="fs54">type R =<br />&#160;&#160;static member ! : ?paramArray: obj [] -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member != : ?paramArray: obj [] -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member !_hexmode : ?a: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member !_octmode : ?a: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member $ : ?paramArray: obj [] -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member $&lt;- : ?paramArray: obj [] -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member $&lt;-_data_frame : ?x: obj * ?name: obj * ?value: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member $_DLLInfo : ?x: obj * ?name: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member $_data_frame : ?x: obj * ?name: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member $_package__version : ?x: obj * ?name: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;...<br /><br />Full name: RProvider.base.R<br /><em><br /><br />Base R functions</em></div>
+<div class="tip" id="fs55">R.as_matrix(paramsByName: Collections.Generic.IDictionary&lt;string,obj&gt;) : RDotNet.SymbolicExpression<br />R.as_matrix(?x: obj, ?___: obj, ?paramArray: obj []) : RDotNet.SymbolicExpression<br /><em><br /><br />No documentation available</em></div>
+<div class="tip" id="fs56">type R =<br />&#160;&#160;static member $&lt;-_igraph_es : ?x: obj * ?name: obj * ?value: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member $&lt;-_igraph_vs : ?x: obj * ?name: obj * ?value: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member $_igraph_es : ?x: obj * ?name: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member $_igraph_vs : ?x: obj * ?name: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member %--% : ?f: obj * ?t: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member %-&gt;% : ?f: obj * ?t: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member %&lt;-% : ?t: obj * ?value: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member %c% : ?x: obj * ?y: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member %du% : ?x: obj * ?y: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;static member %m% : ?x: obj * ?y: obj -&gt; SymbolicExpression + 1 overload<br />&#160;&#160;...<br /><br />Full name: RProvider.igraph.R<br /><em><br /><br />Routines for simple graphs and network analysis. igraph can<br />&#160;&#160;handle large graphs very well and provides functions for generating random<br />&#160;&#160;and regular graphs, graph visualization, centrality indices and much more.</em></div>
+<div class="tip" id="fs57">R.graph_adjacency(paramsByName: Collections.Generic.IDictionary&lt;string,obj&gt;) : RDotNet.SymbolicExpression<br />R.graph_adjacency(?adjmatrix: obj, ?mode: obj, ?weighted: obj, ?diag: obj, ?add_colnames: obj, ?add_rownames: obj) : RDotNet.SymbolicExpression<br /><em><br /><br />Create graphs from adjacency matrices</em></div>
+<div class="tip" id="fs58">val adjacencyMatrixR : RDotNet.SymbolicExpression<br /><br />Full name: AnalyseCodeNetworks.adjacencyMatrixR</div>
+<div class="tip" id="fs59">val diameter : float<br /><br />Full name: AnalyseCodeNetworks.diameter</div>
+<div class="tip" id="fs60">R.diameter(paramsByName: Collections.Generic.IDictionary&lt;string,obj&gt;) : RDotNet.SymbolicExpression<br />R.diameter(?graph: obj, ?directed: obj, ?unconnected: obj, ?weights: obj) : RDotNet.SymbolicExpression<br /><em><br /><br />Diameter of a graph</em></div>
+<div class="tip" id="fs61">val graphMotifs : size:int -&gt; (int * float) []<br /><br />Full name: AnalyseCodeNetworks.graphMotifs</div>
+<div class="tip" id="fs62">val size : int</div>
+<div class="tip" id="fs63">val failwith : message:string -&gt; &#39;T<br /><br />Full name: Microsoft.FSharp.Core.Operators.failwith</div>
+<div class="tip" id="fs64">val motifs : float []</div>
+<div class="tip" id="fs65">R.graph_motifs(paramsByName: Collections.Generic.IDictionary&lt;string,obj&gt;) : RDotNet.SymbolicExpression<br />R.graph_motifs(?graph: obj, ?size: obj, ?cut_prob: obj) : RDotNet.SymbolicExpression<br /><em><br /><br />No documentation available</em></div>
+<div class="tip" id="fs66">type Array =<br />&#160;&#160;member Clone : unit -&gt; obj<br />&#160;&#160;member CopyTo : array:Array * index:int -&gt; unit + 1 overload<br />&#160;&#160;member GetEnumerator : unit -&gt; IEnumerator<br />&#160;&#160;member GetLength : dimension:int -&gt; int<br />&#160;&#160;member GetLongLength : dimension:int -&gt; int64<br />&#160;&#160;member GetLowerBound : dimension:int -&gt; int<br />&#160;&#160;member GetUpperBound : dimension:int -&gt; int<br />&#160;&#160;member GetValue : params indices:int[] -&gt; obj + 7 overloads<br />&#160;&#160;member Initialize : unit -&gt; unit<br />&#160;&#160;member IsFixedSize : bool<br />&#160;&#160;...<br /><br />Full name: System.Array</div>
+<div class="tip" id="fs67">val zip : array1:&#39;T1 [] -&gt; array2:&#39;T2 [] -&gt; (&#39;T1 * &#39;T2) []<br /><br />Full name: Microsoft.FSharp.Collections.Array.zip</div>
+<div class="tip" id="fs68">property Array.Length: int</div>
+<div class="tip" id="fs69">val motifs3 : (int * float) []<br /><br />Full name: AnalyseCodeNetworks.motifs3</div>
+<div class="tip" id="fs70">val mostCommonMotif : motifCounts:(&#39;a * float) [] -&gt; &#39;a * float<br /><br />Full name: AnalyseCodeNetworks.mostCommonMotif</div>
+<div class="tip" id="fs71">val motifCounts : (&#39;a * float) []</div>
+<div class="tip" id="fs72">val filter : predicate:(&#39;T -&gt; bool) -&gt; array:&#39;T [] -&gt; &#39;T []<br /><br />Full name: Microsoft.FSharp.Collections.Array.filter</div>
+<div class="tip" id="fs73">val x : &#39;a * float</div>
+<div class="tip" id="fs74">val not : value:bool -&gt; bool<br /><br />Full name: Microsoft.FSharp.Core.Operators.not</div>
+<div class="tip" id="fs75">type Double =<br />&#160;&#160;struct<br />&#160;&#160;&#160;&#160;member CompareTo : value:obj -&gt; int + 1 overload<br />&#160;&#160;&#160;&#160;member Equals : obj:obj -&gt; bool + 1 overload<br />&#160;&#160;&#160;&#160;member GetHashCode : unit -&gt; int<br />&#160;&#160;&#160;&#160;member GetTypeCode : unit -&gt; TypeCode<br />&#160;&#160;&#160;&#160;member ToString : unit -&gt; string + 3 overloads<br />&#160;&#160;&#160;&#160;static val MinValue : float<br />&#160;&#160;&#160;&#160;static val MaxValue : float<br />&#160;&#160;&#160;&#160;static val Epsilon : float<br />&#160;&#160;&#160;&#160;static val NegativeInfinity : float<br />&#160;&#160;&#160;&#160;static val PositiveInfinity : float<br />&#160;&#160;&#160;&#160;...<br />&#160;&#160;end<br /><br />Full name: System.Double</div>
+<div class="tip" id="fs76">Double.IsNaN(d: float) : bool</div>
+<div class="tip" id="fs77">val snd : tuple:(&#39;T1 * &#39;T2) -&gt; &#39;T2<br /><br />Full name: Microsoft.FSharp.Core.Operators.snd</div>
+<div class="tip" id="fs78">val maxBy : projection:(&#39;T -&gt; &#39;U) -&gt; array:&#39;T [] -&gt; &#39;T (requires comparison)<br /><br />Full name: Microsoft.FSharp.Collections.Array.maxBy</div>
+<div class="tip" id="fs79">val isoclass : int<br /><br />Full name: AnalyseCodeNetworks.isoclass</div>
+<div class="tip" id="fs80">val count : float<br /><br />Full name: AnalyseCodeNetworks.count</div>
+<div class="tip" id="fs81">val plotMotif : size:&#39;a -&gt; isoclass:&#39;b -&gt; RDotNet.SymbolicExpression<br /><br />Full name: AnalyseCodeNetworks.plotMotif</div>
+<div class="tip" id="fs82">val size : &#39;a</div>
+<div class="tip" id="fs83">val isoclass : &#39;b</div>
+<div class="tip" id="fs84">val isoGraph : RDotNet.SymbolicExpression</div>
+<div class="tip" id="fs85">R.graph_isocreate(paramsByName: Collections.Generic.IDictionary&lt;string,obj&gt;) : RDotNet.SymbolicExpression<br />R.graph_isocreate(?size: obj, ?number: obj, ?directed: obj) : RDotNet.SymbolicExpression<br /><em><br /><br />No documentation available</em></div>
+<div class="tip" id="fs86">val namedParams : s:seq&lt;string * &#39;a&gt; -&gt; Collections.Generic.IDictionary&lt;string,obj&gt;<br /><br />Full name: RProvider.Helpers.namedParams</div>
+<div class="tip" id="fs87">val box : value:&#39;T -&gt; obj<br /><br />Full name: Microsoft.FSharp.Core.Operators.box</div>
+<div class="tip" id="fs88">R.plot_igraph(paramsByName: Collections.Generic.IDictionary&lt;string,obj&gt;) : RDotNet.SymbolicExpression<br />R.plot_igraph(?x: obj, ?axes: obj, ?add: obj, ?xlim: obj, ?ylim: obj, ?mark_groups: obj, ?mark_shape: obj, ?mark_col: obj, ?mark_border: obj, ?mark_expand: obj, ?___: obj, ?paramArray: obj []) : RDotNet.SymbolicExpression<br /><em><br /><br />Plotting of graphs</em></div>
+<div class="tip" id="fs89">namespace FSharp.Charting</div>
+<div class="tip" id="fs90">type Chart =<br />&#160;&#160;static member Area : data:seq&lt;#value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; GenericChart<br />&#160;&#160;static member Area : data:seq&lt;#key * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; GenericChart<br />&#160;&#160;static member Bar : data:seq&lt;#value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; GenericChart<br />&#160;&#160;static member Bar : data:seq&lt;#key * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; GenericChart<br />&#160;&#160;static member BoxPlotFromData : data:seq&lt;#key * #seq&lt;&#39;a2&gt;&gt; * ?Name:string * ?Title:string * ?Color:Color * ?XTitle:string * ?YTitle:string * ?Percentile:int * ?ShowAverage:bool * ?ShowMedian:bool * ?ShowUnusualValues:bool * ?WhiskerPercentile:int -&gt; GenericChart (requires &#39;a2 :&gt; value)<br />&#160;&#160;static member BoxPlotFromStatistics : data:seq&lt;#key * #value * #value * #value * #value * #value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string * ?Percentile:int * ?ShowAverage:bool * ?ShowMedian:bool * ?ShowUnusualValues:bool * ?WhiskerPercentile:int -&gt; GenericChart<br />&#160;&#160;static member Bubble : data:seq&lt;#value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string * ?BubbleMaxSize:int * ?BubbleMinSize:int * ?BubbleScaleMax:float * ?BubbleScaleMin:float * ?UseSizeForLabel:bool -&gt; GenericChart<br />&#160;&#160;static member Bubble : data:seq&lt;#key * #value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string * ?BubbleMaxSize:int * ?BubbleMinSize:int * ?BubbleScaleMax:float * ?BubbleScaleMin:float * ?UseSizeForLabel:bool -&gt; GenericChart<br />&#160;&#160;static member Candlestick : data:seq&lt;#value * #value * #value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; CandlestickChart<br />&#160;&#160;static member Candlestick : data:seq&lt;#key * #value * #value * #value * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Color * ?XTitle:string * ?YTitle:string -&gt; CandlestickChart<br />&#160;&#160;...<br /><br />Full name: FSharp.Charting.Chart</div>
+<div class="tip" id="fs91">static member Chart.Bar : data:Deedle.Series&lt;&#39;K,#value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Drawing.Color * ?XTitle:string * ?YTitle:string -&gt; ChartTypes.GenericChart (requires equality and &#39;K :&gt; key)<br />static member Chart.Bar : data:seq&lt;#value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Drawing.Color * ?XTitle:string * ?YTitle:string -&gt; ChartTypes.GenericChart<br />static member Chart.Bar : data:seq&lt;#key * #value&gt; * ?Name:string * ?Title:string * ?Labels:#seq&lt;string&gt; * ?Color:Drawing.Color * ?XTitle:string * ?YTitle:string -&gt; ChartTypes.GenericChart</div>
+<div class="tip" id="fs92">static member Chart.WithXAxis : ?Enabled:bool * ?Title:string * ?Max:float * ?Min:float * ?Log:bool * ?ArrowStyle:ChartTypes.AxisArrowStyle * ?LabelStyle:ChartTypes.LabelStyle * ?MajorGrid:ChartTypes.Grid * ?MinorGrid:ChartTypes.Grid * ?MajorTickMark:ChartTypes.TickMark * ?MinorTickMark:ChartTypes.TickMark * ?TitleAlignment:Drawing.StringAlignment * ?TitleFontName:string * ?TitleFontSize:float * ?TitleFontStyle:Drawing.FontStyle * ?TitleColor:Drawing.Color * ?ToolTip:string -&gt; (&#39;a0 -&gt; &#39;a0) (requires &#39;a0 :&gt; ChartTypes.GenericChart)</div>
+<div class="tip" id="fs93">val motifs4 : (int * float) []<br /><br />Full name: AnalyseCodeNetworks.motifs4</div>
+<div class="tip" id="fs94">val isoclass4 : int<br /><br />Full name: AnalyseCodeNetworks.isoclass4</div>
+<div class="tip" id="fs95">val count4 : float<br /><br />Full name: AnalyseCodeNetworks.count4</div>
+
+
+                    
+        </div>
+        <div class="span1"></div>
+      </div>
+      <hr style="margin-top:50px;"/>
+      <footer class="footer" style="text-align:center">
+        Brought to you by the <a href="http://fsharp.org/technical-groups/">F# Data Science working group</a> and <a href="http://twitter.com/tomaspetricek">@tomaspetricek</a>.<br />
+        Submit <a href="https://github.com/tpetricek/FsLab">feedback on GitHub</a> and help us improve FsLab!
+      </footer>
+    </div>
+  </body>
+</html>

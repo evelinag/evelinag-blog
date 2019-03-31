@@ -1,0 +1,50 @@
+<div class="profile-info has-background-white">
+  <h2 class="subtitle is-4 is-family-secondary">About me</h2>
+  <figure class="image is-128x128">
+    <img class="is-rounded profile" src="/img/evelina-gabasova.png" />
+  </figure>  
+  <br/>
+  <br/>
+
+  {{ readFile "/content/sidenav/index.md" | markdownify }}
+
+  <br/>
+
+  <aside class="menu">
+      <ul class="menu-list">
+      {{ $currentPage := . }}
+      {{ range .Site.Menus.main }}
+      <li><a href="{{ .URL }}" title="{{ .Title }}">{{ .Name }}</a></li>
+      {{ end }}
+      </ul>
+  </aside>
+  
+  <br/><br/>
+  <div class="container">
+
+          <div class="buttons are-medium">
+
+          <a class="button is-white" href="mailto:evelina@evelinag.com">
+            <span class="icon"><i class="fa fa-envelope"></i></span>
+          </a> 
+          
+          <a class="button is-white" href="https://twitter.com/evelgab">
+            <span class="icon"><i class="fa fa-twitter"></i></span>
+          </a> 
+
+          <a class="button is-white" href="http://uk.linkedin.com/in/egabasova">
+            <span class="icon"><i class="fa fa-linkedin"></i></span>
+          </a>
+
+          <a class="button is-white" href="https://github.com/evelinag">
+            <span class="icon"><i class="fa fa-github"></i></span>
+          </a> 
+
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+</div>

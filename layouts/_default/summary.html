@@ -1,0 +1,19 @@
+
+
+    <p class="title is-size-3 is-family-secondary"><a class=" has-text-weight-bold" href="{{ .Permalink }}">{{ .Title }}</a></p>
+    <p class="subtitle is-flex is-size-6" style="justify-content:space-between">
+      <span>{{ .Date.Format "Jan 2, 2006" }}</span>
+    </p>
+
+    <div class="columns">
+      <div class="column is-7">
+          <p>{{ .Summary | markdownify }} </p> <br/>
+          <p><a href="{{ .Permalink }}">[ Continue reading...]</a></p>
+      </div>
+      <div class="column is-5">
+          <img src="{{ .Permalink }}/{{ .Params.featured_image }}" alt="{{ .Params.featured_image_alt }}">
+      </div>
+    </div>
+
+  <hr/>
+

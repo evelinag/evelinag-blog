@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr" itemscope itemtype="http://schema.org/Article">
+
+  {{ partial "head.html" . }}
+
+  <body style="min-height:100vh;display:flex;flex-direction:column">
+
+    {{ partial "navbar.html" . }}
+
+    <section class="section" style="flex:1">
+
+      <!-- Content -->
+      <div class="column is-6 is-offset-3">
+        <p class="title is-size-2 is-family-secondary has-text-primary">{{ .Title }}</p>
+        {{ if .Params.date }}<p class="subtitle">{{ .Date.Format "2 January 2006" }}</p>{{ end }}
+
+        {{ partial "toc.html" . }}
+        
+        <div class="content">
+          {{ .Content }}
+        </div>
+
+        {{ partial "gitinfo.html" . }}
+        {{ partial "taglist.html" . }}
+      </div>
+
+    </section>
+
+    <section class="section">
+      <!-- Pagination -->
+      {{ partial "pagination-single-all.html" . }}
+
+      <br>
+
+      <!-- Page sharing links -->
+      {{ partial "share.html" . }}
+
+      <br>
+
+      <div class="column is-6 is-offset-3">
+      {{ template "_internal/disqus.html" . }}
+      </div>
+
+      <!-- Related list -->
+      {{ partial "relatedlist.html" . }}
+    </section>
+
+    {{ partial "footer.html" . }}
+  </body>
+
+</html>

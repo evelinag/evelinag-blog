@@ -1,0 +1,44 @@
+{{ if (.Site.Params.share) -}}
+<div class="container">
+  <div class="is-flex">
+    <span>
+      <a class="button is-white">Share</a>
+    </span>
+
+    &nbsp;
+
+    <span>
+      <!-- Facebook -->
+      <a class="button is-medium is-black"
+         href="https://www.facebook.com/sharer/sharer.php?u={{ .Permalink }}">
+        <span class="icon"><i class="fa fa-facebook"></i></span>
+      </a>
+
+      <!-- Twitter -->
+      <a class="button is-medium is-black"
+         href="https://twitter.com/intent/tweet?url={{ .Permalink }}&text={{ .Title }}{{ with .Site.Social.twitter}}&via=@{{.}}{{ end }}">
+        <span class="icon"><i class="fa fa-twitter"></i></span>
+      </a>
+
+      <!-- Hacker News -->
+      <a class="button is-medium is-black"
+         href="https://news.ycombinator.com/submitlink?u={{ .Permalink }}">
+        <span class="icon"><i class="fa fa-hacker-news"></i></span>
+      </a>
+
+      <!-- Reddit -->
+      <a class="button is-medium is-black"
+         href="https://reddit.com/submit?url={{ .Permalink }}&title={{ .Title }}">
+        <span class="icon"><i class="fa fa-reddit-alien"></i></span>
+      </a>
+
+      <!-- Linkedin -->
+      <a class="button is-medium is-black"
+         href="https://www.linkedin.com/shareArticle?url={{ .Permalink }}&title={{ .Title }}">
+        <span class="icon"><i class="fa fa-linkedin"></i></span>
+      </a>
+
+    </span>
+  </div>
+</div>
+{{ end -}}

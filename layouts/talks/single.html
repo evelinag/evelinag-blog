@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html
+  lang="en-us"
+  dir="ltr"
+  itemscope="itemscope"
+  itemtype="http://schema.org/Article"
+>
+{{ partial "head.html" . }}
+
+<body style="min-height:100vh;display:flex;flex-direction:column">
+  {{ partial "navbar.html" . }}
+
+  <section class="hero is-link is-fullheight-with-navbar header-image-talks">
+    <div class="hero-body">
+      <div class="container">
+        <p class="title is-2 has-text-white hero-title">
+          Evelina Gabasova
+        </p>
+        <p class="title is-1 has-text-white hero-title logonavbar">
+          Speaking
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section
+    class="section"
+    style="flex:1"
+  >
+    <!-- Content -->
+
+    <div class="section">
+      <div class="container">
+        <div class="columns">
+          <div class="column is-4 is-offset-1">
+            <p class="title">Speaking</p>
+            <div class="content">
+                {{ readFile "/content/speaking/about.md" | markdownify }}
+              </div>
+              <div class="content">
+                  {{ readFile "/content/speaking/upcoming.md" | markdownify }}
+                </div>              
+          </div>
+          <div class="column is-6">
+              <figure>
+                  <img src="evelina-gabasova-lambdaworld.jpg" />
+                </figure>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <hr/>
+
+    <div class="section">
+      <div class="container">
+        <div class="columns">
+
+          <div class="column is-3">
+              <p class="title">Talk <br/> highlights</p>
+              </div>
+          <div class="column is-9">
+            <div class="content">
+              {{ readFile "/content/speaking/highlights.md" | markdownify }}
+              
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <div class="section">
+      <div class="container">
+        <div class="columns">
+          <div class="column is-4 is-offset-1">
+            <p class="title">Speaking</p>
+            <figure>
+              <img src="evelina-gabasova-talk.jpg" />
+            </figure>
+          </div>
+
+          <div class="column is-6">
+              <div class="content">
+                  {{ readFile "/content/speaking/talks.md" | markdownify }}
+                </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <hr/>
+    
+    <div class="section">
+      <div class="container">
+        <div class="columns">
+          <div class="column is-3 is-offset-1">
+            <p class="title is-5">Would you like me to speak at your conference or meetup? </p>
+            <p class="title is-2">Get in touch</p>
+          </div>
+
+          <div class="column is-6">
+              <ul>
+                  <li>
+                      <a href="mailto:evelina@evelinag.com" class="has-text-black">
+                          <span class="icon">
+                            <i class="fa fa-envelope"></i>
+                          </span>
+                          <span>Email me: evelina@evelinag</span>
+                        </a>
+                  </li>
+                <li>
+                  <a href="https://www.twitter.com/evelgab" class="has-text-black">
+                      <span class="icon">
+                        <i class="fa fa-twitter"></i>
+                      </span>
+                      <span>Twitter: @evelgab</span>
+                    </a>
+                  </li>
+                  <li>
+                      <a href="https://github.com/evelinag" class="has-text-black">
+                          <span class="icon">
+                            <i class="fa fa-github"></i>
+                          </span>
+                          <span>GitHub: evelinag</span>
+                        </a>
+                  </li>
+                  <li>
+                      <a href="https://www.linkedin.com/in/egabasova" class="has-text-black">
+                          <span class="icon">
+                            <i class="fa fa-linkedin"></i>
+                          </span>
+                          <span>LinkedIn: egabasova</span>
+                        </a>
+                  </li>
+                  <li>
+                      <a href="https://www.turing.ac.uk/people/researchers/evelina-gabasova" class="has-text-black">
+                          <span class="icon">
+                            <i class="fa fa-building"></i>
+                          </span>
+                          <span>Evelina Gabasova at the Turing</span>
+                        </a>
+                  </li>              
+              </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {{ partial "footer.html" . }}
+</body>
+</html>

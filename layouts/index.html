@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr" itemscope itemtype="http://schema.org/Article">
+
+  {{ partial "head.html" . }}
+
+  <body style="min-height:100vh;display:flex;flex-direction:column">
+      <section class="hero is-white">
+          <div class="hero-body">
+            <div class="container">
+              <div class="columns">
+                <div class="column is-offset-1">
+                    <h1 class="title logobold is-size-1 is-size-3-mobile is-capitalised">
+                        <a href="/">Evelina Gabasova
+                        <span class="has-text-black logo">blog</span>
+                      </a>
+                      </h1>        
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <hr/>
+    
+
+    <section class="section" style="flex:1">
+
+      <div class="container">
+        <div class="columns">
+
+          <div class="column is-7 is-offset-1">
+            <!-- Content -->
+            <div style="min-height:56vh">
+              {{ $paginator := .Paginate (where .Pages "Type" "blog") }}
+              {{- range $paginator.Pages }}
+                {{ .Render "summary" }}
+              {{- end }}
+            </div>
+
+            <br>
+            <br>
+            <br>
+
+            <!-- Pagination -->
+            {{ partial "pagination-list.html" . }}
+          </div>
+
+          <div class="column is-3 is-offset-1">
+            <!-- Taxonomy list -->
+            {{ partial "sidenav.html" . }}
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    {{ partial "footer.html" . }}
+
+  </body>
+
+</html>
