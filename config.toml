@@ -11,6 +11,8 @@ Paginate = 5
 
 disqusShortname = "evelinag"
 
+googleAnalytics = "UA-50895981-1"
+
 [permalinks]
 blog = "/blog/:year/:month-:day-:filename/"
 
