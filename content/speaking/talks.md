@@ -2,6 +2,8 @@
 
 ### 2019
 
+- [Build Stuff Malaga](https://www.buildstuff.es/): 4-5 May 
+- [F# eXchange](https://skillsmatter.com/conferences/10869-f-sharp-exchange-2019): 4-5 April 
 - [NDC Porto](https://youtu.be/RuVgGUk9-R0): 3 March - slides and code on [my GitHub](https://github.com/evelinag/tabs-spaces-talk)
 - [NDC London](https://youtu.be/9MKBex5p2lc): 1 February - slides and code on [my GitHub](https://github.com/evelinag/tabs-spaces-talk)
 

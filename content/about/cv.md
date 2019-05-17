@@ -1,5 +1,7 @@
+* 2019 - present [**The Alan Turing Institute**](https://www.turing.ac.uk)
+  ##### Principal Research Data Scientist
 
-* 2018 - present [**The Alan Turing Institute**](https://www.turing.ac.uk)
+* 2018 - 2019 [**The Alan Turing Institute**](https://www.turing.ac.uk)
   ##### Senior Research Data Scientist
   
 * 2014 - present
