@@ -2,8 +2,8 @@
 
 ### 2019
 
-- [GOTO Berlin](https://gotober.com/): 25 October 
-- Keynote at [data2day Ludwigshafen](https://www.data2day.de/): 23 October
+- [GOTO Berlin](https://gotober.com/): 25 October - [slides and code](https://github.com/evelinag/breaking-black-box-ai)
+- Keynote at [data2day Ludwigshafen](https://www.data2day.de/): 23 October - [slides and code](https://github.com/evelinag/breaking-black-box-ai)
 - [DevConf Krakow](https://youtu.be/X1ZHzTPKvJ8): 26-27 September
 - [Build Stuff Malaga](https://www.buildstuff.es/): 4-5 May 
 - Keynote at [F# eXchange](https://skillsmatter.com/conferences/10869-f-sharp-exchange-2019): 4-5 April 
