@@ -1,5 +1,6 @@
 ## Academic
 
+- [Arenas D et al. (2019) - Design choices for productive, secure, data-intensive research at scale in the cloud. arXiv:1908.08737. ](https://arxiv.org/abs/1908.08737)
 - [Gabasova E (2016) - Star Wars social network (Version 1.0.1) [Data set]. Zenodo. ](https://zenodo.org/record/1411479)
 - [Gabasova E, Reid J, Wernisch L (2017) - Clusternomics: Integrative Context- Dependent Clustering for Heterogeneous Datasets. PLOS Computational Biology 13(10).](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005781)
 - [Tan SLW, Chadha S, Liu Y, Gabasova E, et al. (2017) - Aldehyde exposure unmasks genome instability in cells heterozygous for clinically relevant BRCA2 mutations. Cell 169(6). ](https://www.sciencedirect.com/science/article/pii/S0092867417305378)

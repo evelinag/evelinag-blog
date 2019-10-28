@@ -1,5 +1,8 @@
 ## Upcoming in 2019
 
-- [DevConf Krakow](https://devconf.pl/): 26-27 September
-- Keynote at [data2day Heidelberg](https://www.data2day.de/): 23 October
-- [GOTO Berlin](https://gotober.com/): 25 October 
+- [Code Mesh LDN](https://codesync.global/conferences/code-mesh-ldn): 7-8 November 2019
+
+## Upcoming in 2020
+
+- [NDC London](https://ndc-london.com/): 29-31 January 2020
+- [Lambda Days Krakow](https://www.lambdadays.org/lambdadays2020): 13-14 February 2020

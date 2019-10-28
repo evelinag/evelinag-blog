@@ -50,7 +50,6 @@
       </div>
     </div>
 
-
     <hr/>
 
     <div class="section">
@@ -70,28 +69,6 @@
         </div>
       </div>
     </div>
-
-    <hr/>
-
-    <div class="section">
-      <div class="container">
-        <div class="columns">
-          <div class="column is-4 is-offset-1">
-            <p class="title">Speaking</p>
-            <figure>
-              <img src="evelina-gabasova-talk.jpg" />
-            </figure>
-          </div>
-
-          <div class="column is-6">
-              <div class="content">
-                  {{ readFile "/content/speaking/talks.md" | markdownify }}
-                </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
 
     <hr/>
     
@@ -149,7 +126,29 @@
           </div>
         </div>
       </div>
+    </div>    
+
+    <hr/>
+
+    <div class="section">
+      <div class="container">
+        <div class="columns">
+          <div class="column is-4 is-offset-1">
+            <p class="title">Speaking - Archive</p>
+            <figure>
+              <img src="evelina-gabasova-talk.jpg" />
+            </figure>
+          </div>
+
+          <div class="column is-6">
+              <div class="content">
+                  {{ readFile "/content/speaking/talks.md" | markdownify }}
+                </div>
+          </div>
+        </div>
+      </div>
     </div>
+
   </section>
 
   {{ partial "footer.html" . }}
